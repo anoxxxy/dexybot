@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mikado Approach</title>
+  <script src="mikado.debug.js"></script>
+  <script src="mithril.min.js"></script>
+  <script src="react.min.js"></script>
+  <script src="react-dom.min.js"></script>
+  
+
+</head>
+<body>
+
+  <script>
+
+  //Test between Mikado v0.7.64, older Mthril v1.0.0 and React 15.7.0
+  //https://jsfiddle.net/g9unjwrk/
+
+  //Test between Mikado v0.7.64, newer React & React DOM v18.2.0 and Mithril v2.2.3
+  //https://jsfiddle.net/pcvuxqga/
+
+function reactTest(n=20000) {
+  var h = React.createElement
+
+  console.time("React total")
+  var list = new Array(n)
+    for (var i = 0; i < n; i++) 
+      list[i] = h("div", {key: i}, "hi")
+
+  var vdom = h("div", null, list)
+  ReactDOM.render(vdom, document.body)
+  console.timeEnd("React total")
+
+
+}
+function mithrilTest(n=20000) {
+  var h = m
+
+  console.time("Mihtril total")
+  var list = new Array(n)
+  for (var i = 0; i < n; i++) 
+    list[i] = h("div", {key: i}, "hi")
+
+  var vdom = h("div", null, list)
+  m.render(document.body, vdom)
+  console.timeEnd("Mihtril total")
+
+
+}
+function mikadoTest(n=20000) {
+  const tpl = (`<div>{{data.content}}</div>`);
+  const tplC = Mikado.compile(tpl);
+  const view = Mikado(document.body, tplC);
+
+  console.time("Mikado total")
+  var list = new Array(n)
+  for (var i = 0; i < n; i++) 
+    list[i]= {content: 'hi'};
+
+  view.render(list);
+  console.timeEnd("Mikado total")
+}
+function mikadoProxyTest(n=20000) {
+  
+  
+  var list = Mikado.array();
+  const tpl = (`<div>{{data.content}}</div>`);
+  const tplC = Mikado.compile(tpl);
+  const view = Mikado(document.body, tplC, {store: list});
+
+  console.time("Mikado-Proxy total")
+  
+  for (var i = 0; i < n; i++) 
+    list[i]= {content: 'hi'};
+
+  console.timeEnd("Mikado-Proxy total")
+}
+
+const n=200000;
+for (i = 0; i< 10;i++) {
+console.log(`\ntest: ${i}`);
+reactTest(n);
+mithrilTest(n);
+mikadoTest(n);
+mikadoProxyTest(n);
+}
+
+  </script>
+</body>
+</html>

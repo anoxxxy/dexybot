@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>gptDOM Plugin Performance Test</title>
+</head>
+<body>
+  <table id="botLog">
+    <!-- Existing table rows -->
+    <tr>
+      <td>aaaaaaaaaaaaaaaaaaaaaa</td>
+    </tr>
+  </table>
+<script src="mikado.min.js"></script>
+<script>
+var data = [
+  {
+    user: "User A",
+    tweets: ["foo", "bar", "foobar"]
+  },
+  {
+    user: "User B",
+    tweets: ["foo", "bar", "foobar"]
+  },
+  {
+    user: "User C",
+    tweets: ["foo", "bar", "foobar"]
+  }
+];
+
+var tpl1 = `<table>
+        <tr>
+            <td>User:</td>
+            <td>{{ data.user }}</td>
+        </tr>
+        <tr>
+            <td>Tweets:</td>
+            <td>{{ data.tweets.length }}</td>
+        </tr>
+    </table>`;
+
+var tpl1 = `<div> test1
+        <div>
+            <td>User:</td>
+            <td>{{ data.user }}</td>
+        </div>
+        testar två
+        <div>
+            <td>Tweets:</td>
+            <td>{{ data.tweets.length }}</td>
+        </div>
+    </div>`;
+
+
+var tpl1 = Mikado.compile(tpl1);
+var view1 = new Mikado(tpl1);
+
+// Create a container element
+var container = document.createElement('div');
+
+// Append the container to the body
+document.body.appendChild(container);
+
+view1.mount(container);
+view1.render(data);
+
+data[0].user="Icee";
+view1.render(data);
+</script>
+</body>
+</html>

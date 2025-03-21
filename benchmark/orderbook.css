@@ -1,0 +1,182 @@
+.col-md-3 {
+  width: 400px;
+}
+
+[data-orders="buy"] table tbody tr,
+[data-orders="sell"] table tbody tr {
+  transition: background 0.3s ease;
+}
+
+[data-orders="buy"] table tbody tr,
+[data-orders="buy"] table tbody tr td
+[data-orders="sell"] table tbody tr,
+[data-orders="sell"] table tbody tr td {
+  /*transition: background-color 0.3s;*/
+  transition: all 0.3s ease;
+  webkit-transition: all 0.3s ease;
+  -o-transition: all 0.3s ease;
+}
+/*
+.marketSizeBar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  transition: width 0.3s ease;
+  background-color: rgba(0, 255, 0, 0.2);
+}
+*/
+
+.xyOrderBookTable  {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  /*color: rgb(255, 255, 255);*/
+  font-family: atlas, sans-serif;
+  line-height: 1.15;
+  text-size-adjust: 100%;
+  /*background: rgb(7, 15, 21);*/
+  overflow: hidden;
+}
+
+/*.xyOrderBookTable .header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  height: 46px;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 0px 28px;
+  border-bottom: 1px solid rgb(38, 45, 52);
+  background: rgb(18, 29, 39);
+  overflow: hidden;
+}
+*/
+
+.xyOrderBookTable .orderBookContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+.xyOrderBookTable .labelContainer {
+  display: flex;
+  flex-direction: row;
+  height: 31px;
+  font-size: 11px;
+  /*color: rgba(255, 255, 255, 0.4);*/
+  border-bottom: 1px solid rgb(38, 45, 52);
+  /*background: rgb(7, 15, 21);  */
+  overflow: hidden;
+  border-bottom: var(--tblr-card-border-width) solid var(--tblr-card-border-color);
+}
+
+.xyOrderBookTable .leftLabelCol {
+  display: flex;
+  flex: 1;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 3px;
+  padding-left: 3px;
+  
+  font-weight: normal;
+  line-height: 1.5;
+  font-size: 11px;
+  text-align: left;
+  color: rgb(138, 147, 159);
+}
+
+.xyOrderBookTable .centerLabelCol {
+  display: flex;
+  flex: 1;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 3px;
+  
+  font-weight: normal;
+  line-height: 1.5;
+  font-size: 11px;
+  text-align: left;
+  color: rgb(138, 147, 159);
+}
+
+.xyOrderBookTable .rightLabelCol {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  flex-direction: row;
+  justify-content: flex-end;
+  padding-right: 8px;
+  
+  font-weight: normal;
+  line-height: 1.5;
+  font-size: 11px;
+  text-align: left;
+  color: rgb(138, 147, 159);
+}
+
+.xyOrderBookTable .tableContainer {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.xyOrderBookTable .entriesContainer {
+  border-bottom: 1px solid rgb(38, 45, 52);
+  /* max-height: 373px;*/
+/*  max-height: 600px;
+  overflow: hidden;*/
+  border-bottom: var(--tblr-card-border-width) solid var(--tblr-card-border-color);
+}
+
+.xyOrderBookTable .entryContainer {
+  display: flex;
+  flex-direction: row;
+  height: 31px;
+  font-size: 11px;
+  /*color: rgba(255, 255, 255, 0.4);
+  background: rgb(7, 15, 21);*/
+  position: relative;
+}
+
+.xyOrderBookTable .entryText {
+  /*color: white;*/
+  font-weight: bold;
+}
+
+.xyOrderBookTable .entrySellText {
+  color: rgba(255, 0, 0, 0.8);
+  font-weight: bold;
+}
+
+.xyOrderBookTable .entryBuyText {
+  color: rgba(0, 255, 0, 0.8);
+  font-weight: bold;
+}
+
+.xyOrderBookTable .entriesContainer[data-orders="sell"] .entryContainer:hover {
+  background-color: rgba(255, 184, 184, 0.6);
+}
+.xyOrderBookTable .entriesContainer[data-orders="buy"] .entryContainer:hover {
+  background-color: rgba(163, 238, 147, 0.6);
+}
+
+.xyOrderBookTable .marketSizeBar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    transition: width .3s ease;
+    background-color: rgba(0, 255, 0, 0.2);
+    
+  }
+  .xyOrderBookTable .marketSizeBarSell {
+    background-color: #d63939;
+    background-color: rgba(255, 0, 0, 0.1);
+  }
+  .xyOrderBookTable .leftLabelCol, .xyOrderBookTable .centerLabelCol, .xyOrderBookTable .rightLabelCol {
+    z-index:2;
+  }
+

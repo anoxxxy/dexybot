@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mikado Basics - Performance Test</title>
+</head>
+<body>
+
+<table id="log">
+  
+</table>
+
+  
+<script src="mikado.debug.js"></script>
+<!--<script src="mikado.min.js"></script>-->
+<script>
+/*
+<div id="botLog2"></div>
+this works
+var data = [
+  {
+    user: "User A",
+    tweets: ["foo", "bar", "foobar"]
+  },
+  {
+    user: "User B",
+    tweets: ["foo", "bar", "foobar"]
+  },
+  {
+    user: "User C",
+    tweets: ["foo", "bar", "foobar"]
+  }
+];
+
+var tpl1 = `
+
+<table>
+        <tr>
+            <td>User:</td>
+            <td>{{ data.user }}</td>
+        </tr>
+        <tr>
+            <td>Tweets:</td>
+            <td>{{ data.tweets.length }}</td>
+        </tr>
+    </table>`;
+
+
+var tpl1 = Mikado.compile(tpl1);
+var view1 = new Mikado(tpl1);
+
+// Create a container element
+
+// Append the container to the body
+var container = document.querySelector('#botLog2');
+
+view1.mount(container);
+
+view1.render(data);
+
+//data[0].user="Icee";
+//view1.render(data);
+
+*/
+var tweets = [
+  {
+    user: "User A",
+    tweets: ["foo", "bar", "foobar"]
+  },
+  {
+    user: "User B",
+    tweets: ["foo", "bar", "foobar"]
+  },
+  {
+    user: "User CC",
+    tweets: ["foo", "bar", "foobar"]
+  }
+];
+
+
+const tplDIV = 
+  `                <div>
+    <div>User: {{ data.user }}</div>
+    <div>Tweets: {{ data.tweets.length }}</div>
+  </div>`;
+const tplTR = 
+  `
+
+                            <tr>
+    <td>User: {{ data.user }}</td>
+    <td>Tweets: {{ data.tweets.length }}</td>
+  </tr>`;
+
+const tplC = Mikado.compile(tplTR);
+const view = new Mikado(tplC);
+
+const container = document.getElementById('log');
+view.mount(container);
+
+view.render(tweets)
+
+
+
+</script>
+</body>
+</html>

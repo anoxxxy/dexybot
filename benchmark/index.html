@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mikado Approach</title>
+  <script src="https://code.jquery.com/jquery-3.6.1.min.js"></script>
+  <script src="mikado.debug.js"></script>
+  <script src="gptDOM.js"></script>
+</head>
+<body>
+  <table id="botLog"></table>
+
+  <script>
+    function generateRandomOrderData(amount) {
+      const orders = [];
+      for (let i = 0; i < amount; i++) {
+        const orderType = Math.random() < 0.5 ? 'buy' : 'sell';
+        const timestamp = Date.now();
+        const price = Math.random() * 100;
+        const amount = Math.random() * 10;
+        const cost = price * amount;
+        const success = Math.random() < 0.8;
+        const error = success ? '' : 'Order failed';
+        const ych = { nnum: Math.random() };
+        const buftextBot = 'Bot buftext';
+
+        orders.push({
+          orderType,
+          order: {
+            timestamp,
+            price,
+            amount,
+            cost
+          },
+          success,
+          error,
+          ych,
+          buftextBot
+        });
+      }
+      return orders;
+    }
+
+    
+/*
+    var tpl = Mikado.compile(`
+<div>
+ <tr>
+  <td>{{ console.log('aaa: ', data) }} {{ data.orderType }}</td>
+  <td class="text-muted yright">mikado {{ data.order.price.toFixed(2) }}</td>
+  <td class="text-muted yright">{{data.order.amount.toFixed(2)}}</td>
+  <td class="text-muted yright">{{data.order.cost.toFixed(2)}}</td>
+  <td class="text-muted yright">
+    <span class="status-badge badge"></span>
+  </td>
+  <td class="text-muted yright">{{data.error}}</td>
+  <td class="text-muted yright">{{data.ych.nnum.toFixed(2)}}</td>
+  <td class="text-muted yright">{{data.buftextBot}}</td>
+</tr>
+</div>`);
+
+    var view = new Mikado(tpl);
+    
+    // Mount to a DOM element to Mikado and render the template with data
+    var container = document.getElementById('botLog');
+    view.mount(container);
+*/    
+
+
+
+    var tpl = (`
+ <tr>
+  <td>{{ data.orderType }}</td>
+  <td class="text-muted yright">{{ data.order.price.toFixed(2) }}</td>
+  <td class="text-muted yright">{{data.order.amount.toFixed(2)}}</td>
+  <td class="text-muted yright">{{data.order.cost.toFixed(2)}}</td>
+  <td class="text-muted yright"> <span class="status-badge badge"></span> </td>
+  <td class="text-muted yright">{{data.error}}</td>
+  <td class="text-muted yright">{{data.ych.nnum.toFixed(2)}}</td>
+  <td class="text-muted yright">{{data.buftextBot}}</td>
+</tr>`);
+    const tplC = Mikado.compile(tpl);
+    
+    // Mount to a DOM element to Mikado and render the template with data
+    var container = document.getElementById('botLog');
+    
+    view = Mikado(container, tplC);
+
+
+
+    function createOrderRowMikado(order) {
+      return view.add(order);
+    }
+
+
+    /*const orders = [
+      { orderType: "Buy", order: { price: 10.5, amount: 100, cost: 1050 }, error: "", ych: { nnum: 2.5 }, buftextBot: "Some text" },
+      { orderType: "Sell", order: { price: 12.2, amount: 50, cost: 610 }, error: "", ych: { nnum: 5.3 }, buftextBot: "Some text" },
+      // Add more orders here...
+    ];
+    */
+
+    const orders = generateRandomOrderData(5000);
+
+    console.log('orders: ', orders);
+    
+    let optimizedTotalTime = 0;
+    let htmlToDOMTotalTime = 0;
+    let jqueryTotalTime = 0;
+    let mikadoTotalTime = 0;
+
+    for (let i = 1; i <= 2; i++) {
+      console.log(`\nIteration  ${i}`);
+
+      // Optimized Approach
+      console.time("Optimized Time Approach: ", i);
+      const optimizedStartTime = performance.now();
+      const fragment = document.createDocumentFragment();
+      for (const order of orders) {
+        const newRow = createOrderRow(order);
+        fragment.appendChild(newRow);
+      }
+      document.getElementById('botLog').prepend(fragment);
+      const optimizedEndTime = performance.now();
+      const optimizedElapsedTime = optimizedEndTime - optimizedStartTime;
+      optimizedTotalTime += optimizedElapsedTime;
+      console.timeEnd("Optimized Time Approach: ", i);
+
+      // HTML to DOM Approach
+      console.time("HTML to DOM Time Approach: ", i);
+      const htmlToDOMStartTime = performance.now();
+      const html = orders.map(order => createOrderRowHTML(order)).join('');
+      document.getElementById('botLog').innerHTML = html + document.getElementById('botLog').innerHTML;
+      const htmlToDOMEndTime = performance.now();
+      const htmlToDOMElapsedTime = htmlToDOMEndTime - htmlToDOMStartTime;
+      htmlToDOMTotalTime += htmlToDOMElapsedTime;
+      console.timeEnd("HTML to DOM Time Approach: ", i);
+
+      // JQuery Approach
+      console.time("JQuery Approach: " + i);
+      const jqueryStartTime = performance.now();
+      for (const order of orders) {
+        const newRow = createOrderRow(order);
+        jqueryRowToBotLog(newRow);
+      }
+      const jqueryEndTime = performance.now();
+      const jqueryElapsedTime = jqueryEndTime - jqueryStartTime;
+      jqueryTotalTime += jqueryElapsedTime;
+      console.timeEnd("JQuery Approach: " + i);
+
+      // Mikado Approach
+      console.time("Mikado Approach: " + i);
+      const mikadoStartTime = performance.now();
+      for (const order of orders) {
+        const newRow = createOrderRowMikado(order);
+        //appendRowToBotLog(newRow);
+      }
+      
+
+      const mikadoEndTime = performance.now();
+      const mikadoElapsedTime = mikadoEndTime - mikadoStartTime;
+      mikadoTotalTime += mikadoElapsedTime;
+      console.timeEnd("Mikado Approach: " + i);
+    }
+
+    console.log("Optimized Total Time: ", optimizedTotalTime);
+    console.log("HTML to DOM Total Time: ", htmlToDOMTotalTime);
+    console.log("JQuery Total Time: ", jqueryTotalTime);
+    console.log("Mikado Total Time: ", mikadoTotalTime);
+
+    function createOrderRow(order) {
+      const newRow = document.createElement('tr');
+      const orderTypeCell = document.createElement('td');
+      orderTypeCell.textContent = order.orderType;
+      newRow.appendChild(orderTypeCell);
+      const priceCell = document.createElement('td');
+      priceCell.textContent = order.order.price.toFixed(2);
+      priceCell.classList.add('text-muted', 'yright');
+      newRow.appendChild(priceCell);
+      const amountCell = document.createElement('td');
+      amountCell.textContent = order.order.amount.toFixed(2);
+      amountCell.classList.add('text-muted', 'yright');
+      newRow.appendChild(amountCell);
+      const costCell = document.createElement('td');
+      costCell.textContent = order.order.cost.toFixed(2);
+      costCell.classList.add('text-muted', 'yright');
+      newRow.appendChild(costCell);
+      const statusCell = document.createElement('td');
+      const statusBadge = document.createElement('span');
+      statusBadge.classList.add('status-badge', 'badge');
+      statusCell.appendChild(statusBadge);
+      newRow.appendChild(statusCell);
+      const errorCell = document.createElement('td');
+      errorCell.textContent = order.error;
+      errorCell.classList.add('text-muted', 'yright');
+      newRow.appendChild(errorCell);
+      const nnumCell = document.createElement('td');
+      nnumCell.textContent = order.ych.nnum.toFixed(2);
+      nnumCell.classList.add('text-muted', 'yright');
+      newRow.appendChild(nnumCell);
+      const buftextBotCell = document.createElement('td');
+      buftextBotCell.textContent = order.buftextBot;
+      buftextBotCell.classList.add('text-muted', 'yright');
+      newRow.appendChild(buftextBotCell);
+      return newRow;
+    }
+
+    function createOrderRowHTML(order) {
+      const rowHtml = `<tr><td>${order.orderType}</td><td class="text-muted yright">${order.order.price.toFixed(2)}</td><td class="text-muted yright">${order.order.amount.toFixed(2)}</td><td class="text-muted yright">${order.order.cost.toFixed(2)}</td><td class="text-muted yright"><span class="status-badge badge"></span></td><td class="text-muted yright">${order.error}</td><td class="text-muted yright">${order.ych.nnum.toFixed(2)}</td><td class="text-muted yright">${order.buftextBot}</td></tr>`;
+      return rowHtml;
+    }
+
+    function appendRowToBotLog(row) {
+      const temp = document.createElement('template');
+      temp.innerHTML = row;
+      const newRow = temp.content.firstChild;
+      document.getElementById('botLog').insertBefore(newRow, document.getElementById('botLog').firstChild);
+    }
+
+    function jqueryRowToBotLog(row) {
+      $(row).prependTo('#botLog');
+    }
+
+  </script>
+</body>
+</html>

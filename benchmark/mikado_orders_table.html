@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mikado Performance Test</title>
+</head>
+<body>
+  <table >
+    <tbody id="botLogMikado"></tbody>
+    
+  </table>
+
+<script src="mikado.debug.js"></script>
+<script>
+
+//<td if="data.success" data-label="Status" class="text-muted yright text-status ERROR_SUB"><div><span class="badge bg-lime-lt">{{data.success}}</span></div> p0:{{console.log('p0', p[0])}}, p2:{{console.log('p5', p[8])}}, s: {{console.log('s: ', data.success)}}, e: {{console.log('e: ', data.error)}}</td>
+//var tpl = (`<tr if="(self=p[0]) && data.success">
+//var tpl = (`<tr if="(self=p[0]) && data.success">
+var tpl = (`
+  <tr if="(self=p[0])">
+    <td data-label="Order"><div><span class="badge {{data.orderClass}}">{{data.orderType}}</span> | <span class="badge bg-azure-lt">time: {{data.orderTime}}</span></div></td>
+    <td data-label="Price" class="text-muted yright"><div>{{(data.order.price).toFixed(8)}}</div></td>
+    <td data-label="Amount" class="text-muted yright"><div>{{(data.order.amount).toFixed(8)}}</div></td>
+    <td data-label="Cost" class="text-muted yright"><div>{{(data.order.cost).toFixed(8)}}</div></td>
+    <td data-label="Status" class="text-muted yright text-status"><div><span class="badge bg-lime-lt">{{data.success}} {{console.log('data: ', data)}} </span></div></td>
+  </tr>
+
+  {{ if (!data.success){ }}
+    <tr >
+    <td data-label="Order"><div><span class="badge {{data.orderClass}}">{{data.orderType}}</span> <span class="badge bg-azure-lt">time: {{orderTime}}</span></div></td>
+    <td data-label="Message" colspan="3" class="text-muted small "><div>{{data.error}}, <br>ych.nnum: {{ych.nnum}}, <br><span class="buftext"><b>Bot buftext:</b> {{buftextBot}}</span></div></td>
+    <td data-label="Status" class="text-muted yright text-status"><div><span class="badge bg-red-lt">failed</span></div></td>
+
+  </tr>
+  {{ } }}
+  `);
+
+/*
+var tpl = (`<tr if="(self=p[0]) && data.success">
+  <td if="data.success" data-label="Order"><div><span class="badge {{data.orderClass}}">{{data.orderType}}</span> | <span class="badge bg-azure-lt">time: {{data.orderTime}}</span></div></td>
+  <td if="data.success" data-label="Price" class="text-muted yright"><div>{{(data.order.price).toFixed(8)}}</div></td>
+  <td if="data.success" data-label="Amount" class="text-muted yright"><div>{{(data.order.amount).toFixed(8)}}</div></td>
+  <td if="data.success" data-label="Cost" class="text-muted yright"><div>{{(data.order.cost).toFixed(8)}}</div></td>
+  <td if="data.success" data-label="Status" class="text-muted yright text-status"><div><span class="badge bg-lime-lt">success</span></div></td>
+
+<td if="!data.success"data-label="Order"><div><span class="badge {{data.orderClass}}">{{data.orderType}}</span> <span class="badge bg-azure-lt">time: {{orderTime}}</span></div></td>
+  <td if="!data.success"data-label="Message" colspan="3" class="text-muted small "><div>{{data.error}}, <br>ych.nnum: {{ych.nnum}}, <br><span class="buftext"><b>Bot buftext:</b> {{buftextBot}}</span></div></td>
+  <td if="!data.success"data-label="Status" class="text-muted yright text-status"><div><span class="badge bg-red-lt">failed</span></div></td>
+
+  </tr>`);
+*/
+var tplC = Mikado.compile(tpl);
+var view = new Mikado(tplC);
+
+// Mount a DOM element to Mikado and render the template with data
+const container = document.getElementById('botLogMikado');
+view.mount(container);
+
+function generateRandomOrderData(amount) {
+  const orders = [];
+  for (let i = 0; i < amount; i++) {
+    const orderType = Math.random() < 0.5 ? 'buy' : 'sell';
+    const timestamp = Date.now();
+    const price = Math.random() * 100;
+    const amount = Math.random() * 10;
+    const cost = price * amount;
+    const success = Math.random() < 0.6;
+    const error = success ? 'isaa' : 'isaa failed';
+    const ych = { nnum: Math.random() };
+    const buftextBot = Math.ceil(Math.random() * 1000);
+    
+    let orderClass = "bg-red-lt";
+    if (orderType == 'buy' )
+      orderClass = "bg-lime-lt";
+
+    let orderTime = new Date(timestamp).toLocaleTimeString([], { hour12: false });
+
+    orders.push({
+      orderType,
+      orderClass,
+      orderTime,
+      order: {
+        timestamp,
+        price,
+        amount,
+        cost
+      },
+      'success': success,
+      'error': error,
+      ych,
+      buftextBot
+    });
+  }
+  return orders;
+}
+
+const orders = generateRandomOrderData(5);
+console.log('orders: ', orders);
+
+// Initialize variables
+let totalIntervals = 1;
+let mikadoTotalTime = 0;
+
+// Perform the tests
+for (let i = 0; i < totalIntervals; i++) {
+  // Mikado Approach
+  
+  console.time("Mikado Approach " + i);
+  const mikadoStartTime = performance.now();
+  
+  // Set the data for the view
+  //view.data(orders);
+  
+  // Render the entire table
+  view.render(orders);
+  //view.sync();
+  
+  const mikadoEndTime = performance.now();
+  const mikadoElapsedTime = mikadoEndTime - mikadoStartTime;
+  mikadoTotalTime += mikadoElapsedTime;
+  console.timeEnd("Mikado Approach " + i);
+}
+
+// Calculate average times
+const mikadoAverageTime = mikadoTotalTime / totalIntervals;
+
+// Output results
+console.log("========================================================");
+console.log("Mikado Total Time: ", mikadoTotalTime);
+console.log("Mikado Average Time: ", mikadoAverageTime);
+/*
+var data = [
+  {
+    user: "User A",
+    tweets: ["foo", "bar", "foobar"]
+  },
+  {
+    user: "User B",
+    tweets: ["foo", "bar", "foobar"]
+  },
+  {
+    user: "User C",
+    tweets: ["foo", "bar", "foobar"]
+  }
+];
+
+var tpl1 = `
+
+<table>
+        <tr>
+            <td>User:</td>
+            <td>{{ data.user }}</td>
+        </tr>
+        <tr>
+            <td>Tweets:</td>
+            <td>{{ data.tweets.length }}</td>
+        </tr>
+    </table>`;
+
+
+var tpl2 = Mikado.compile(tpl);
+var view2 = new Mikado(tpl2);
+
+
+view2.mount(container);
+
+view2.render(orders);
+*/
+</script>
+</body>
+</html>

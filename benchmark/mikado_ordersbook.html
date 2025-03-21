@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mikado Performance Test</title>
+
+  <!-- CSS files -->
+    <link href="./orderbook.css" rel="stylesheet"/>
+</head>
+<body>
+  
+<div class="col-md-3">
+                     <div class="card">
+                      <div class="card-header">
+                          <span class="subheader">Order Book</span>
+                        </div>
+                      <div class="xyOrderBookTable" id="xyOrderBookTable">
+  
+  <div class="orderBookContainer">
+    <div class="labelContainer">
+      <div class="leftLabelCol">
+        <span>Amount&nbsp;(<span data-market="coina">BTC</span>)</span>
+      </div>
+      <div class="centerLabelCol">
+        <span>Price&nbsp;(<span data-market="coinb">USD</span>)</span>
+      </div>
+      <div class="rightLabelCol">
+        <span>Total&nbsp;(<span data-market="coina">BTC</span>)</span>
+      </div>
+    </div>
+    <div class="tableContainer">
+      <div class="entriesContainer" data-orders="sell" id="orderbook_ask">
+        
+      </div>
+      <div class="labelContainer">
+        <div class="leftLabelCol">
+          <span><span data-market="coinb">USDT</span> Spread</span>
+        </div>
+        <div class="centerLabelCol">
+          <span data-market="spread">-</span>
+        </div>
+        <div class="rightLabelCol">
+          <span></span>
+        </div>
+      </div>
+      <div class="entriesContainer" data-orders="buy" id="orderbook_bid">
+        <div class="entryContainer">
+          <div class="marketSizeBar" style="width: 47.71%;"></div>
+          <div class="leftLabelCol">
+            <span class="entryText">4771.0000</span>
+          </div>
+          <div class="centerLabelCol">
+            <span class="entryBuyText  text-lime">6771.09</span>
+          </div>
+          <div class="rightLabelCol">
+            <span class="entryText">-</span>
+          </div>
+        </div>
+        <div class="entryContainer">
+          <div class="marketSizeBar" style="width: 60.20%;"></div>
+          <div class="leftLabelCol">
+            <span class="entryText">6020.0000</span>
+          </div>
+          <div class="centerLabelCol">
+            <span class="entryBuyText text-lime">6771.08</span>
+          </div>
+          <div class="rightLabelCol">
+            <span class="entryText">-</span>
+          </div>
+        </div>
+        <div class="entryContainer">
+          <div class="marketSizeBar" style="width: 77.81%;"></div>
+          <div class="leftLabelCol">
+            <span class="entryText">7781.0000</span>
+          </div>
+          <div class="centerLabelCol">
+            <span class="entryBuyText text-lime">6781.01</span>
+          </div>
+          <div class="rightLabelCol">
+            <span class="entryText">-</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="card-footer">
+  </div>
+</div>
+                  </div>
+
+
+
+
+<script src="mikado.debug.js"></script>
+<script>
+//Mixed functions
+function generateOrderBook(totalOrders, minPrice, maxPrice) {
+  const orderBook = [];
+
+  for (let i = 0; i < totalOrders; i++) {
+    const price = getRandomDecimal(minPrice, maxPrice, 8);
+    const amounta = getRandomDecimal(0.1, 100, 8);
+    const amountb = parseFloat((price * amounta).toFixed(8));
+
+    orderBook.push({ coina: 'BAY', coinb: 'BTC', price, amounta, amountb });
+  }
+
+  return orderBook;
+}
+
+function getRandomDecimal(min, max, decimalPlaces) {
+  return parseFloat((Math.random() * (max - min) + min).toFixed(decimalPlaces));
+}
+
+
+//Mikado
+//Mikado Bid Orderbook template
+const tplOrderbookBid = `
+  <div class="entryContainer">
+    <div class="marketSizeBar" style="width: {{= data.marketSizeBarWidth}}%;"></div>
+    <div class="leftLabelCol">
+      <span class="entryText">{{= (data.amount).toFixed(4)}}</span>
+    </div>
+    <div class="centerLabelCol">
+      <span class="entryBuyText text-lime">{{= (data.price).toFixed(8)}}</span>
+    </div>
+    <div class="rightLabelCol">
+      <span class="entryText">{{= (data.total).toFixed(4)}}</span>
+    </div>
+  </div>
+`;
+
+//Mikado compile template
+var tplOBookBid = Mikado.compile(tplOrderbookBid);
+
+//set the container for the view
+// Mount a DOM element to Mikado and render the template with data, set the options as well
+const containerBidOrders = document.getElementById('orderbook_bid');
+const viewBidBook = new Mikado(containerBidOrders, tplOBookBid, {
+  on: {
+    create: function(node) {
+      console.log("tplOBookBid - created:", node);
+    },
+    insert: function(node) {
+      console.log("tplOBookBid - inserted:", node);
+    },
+    update: function(node) {
+      console.log("tplOBookBid - updated:", node);
+    },
+    change: function(node) {
+      console.log("tplOBookBid - changed:", node);
+    },
+    remove: function(node) {
+      console.log("tplOBookBid - removed:", node);
+    },
+    cache: false,
+  }
+});
+
+
+// Generate bid orders randomly
+let bidOrderBook = generateOrderBook(15, 0.00000100, 0.00001000);
+
+// Sort the orders in descending price order
+
+// Generate and simulate server buy orders
+function simulateBidOrderBook(totalOrderSimulations) {
+  totalOrderSimulations =  15;
+  const minPrice = bidOrderBook[bidOrderBook.length - 1].price;
+  const maxPrice = bidOrderBook[0].price;
+
+  // Generate random server buy orders with prices 1% to 10% above and below the bidOrderBook price range
+  let serverBuyOrders = generateOrderBook(totalOrderSimulations, minPrice * 0.9, maxPrice * 1.1);
+
+  // Combine the existing order book and server buy orders
+  //bidOrderBook = serverBuyOrders.concat(bidOrderBook);
+  bidOrderBook = serverBuyOrders;
+
+  // Sort the orders in descending price order
+  bidOrderBook.sort((a, b) => b.price - a.price);
+
+  // Calculate total buy amount
+  totalBuyAmount = bidOrderBook.reduce((total, order) => total + order.amounta, 0);
+
+  // Calculate cumulative buy amount and update marketSizeBarWidth
+  let cumulativeBuyAmount = 0;
+  const updatedOrders = bidOrderBook.map((order) => {
+    cumulativeBuyAmount += order.amounta;
+
+    const marketSizeBarWidth = Math.ceil((cumulativeBuyAmount / totalBuyAmount) * 100);
+    return {
+      coina: order.coina,
+      coinb: order.coinb,
+      amount: parseFloat(order.amounta.toFixed(4)),
+      price: parseFloat(order.price.toFixed(8)),
+      marketSizeBarWidth,
+      total: parseFloat(cumulativeBuyAmount.toFixed(4)),
+    };
+  });
+
+  console.log('updatedOrders: ', updatedOrders);
+  // Render the entire buy/bid order book
+  viewBidBook.render(updatedOrders);
+}
+
+// Call simulateBidOrderBook function with the desired number of order simulations
+simulateBidOrderBook(18);
+
+/*************************************************************/
+
+//Mikado Ask Orderbook template
+const tplOrderBookAsk = `
+  <div class="entryContainer">
+    <div class="marketSizeBar marketSizeBarSell" style="width: {{= data.marketSizeBarWidth}}%;"></div>
+    <div class="leftLabelCol">
+      <span class="entryText">{{= (data.amount).toFixed(4)}}</span>
+    </div>
+    <div class="centerLabelCol">
+      <span class="entrySellText text-lime">{{= (data.price).toFixed(8)}}</span>
+    </div>
+    <div class="rightLabelCol">
+      <span class="entryText">{{= (data.total).toFixed(4)}}</span>
+    </div>
+  </div>
+`;
+
+//Mikado compile template
+var tplOBookAsk = Mikado.compile(tplOrderBookAsk);
+
+//set the container for the view
+// Mount a DOM element to Mikado and render the template with data, set the options as well
+const containerAskOrders = document.getElementById('orderbook_ask');
+const viewAskBook = new Mikado(containerAskOrders, tplOBookAsk, {
+  on: {
+    create: function(node) {
+      console.log("tplOBookAsk - created:", node);
+    },
+    insert: function(node) {
+      console.log("tplOBookAsk - inserted:", node);
+    },
+    update: function(node) {
+      console.log("tplOBookAsk - updated:", node);
+    },
+    change: function(node) {
+      console.log("tplOBookAsk - changed:", node);
+    },
+    remove: function(node) {
+      console.log("tplOBookAsk - removed:", node);
+    },
+    cache: false,
+  }
+});
+
+
+// Generate ask orders randomly
+let askOrderBook = generateOrderBook(15, 0.000001010, 0.00002010);
+
+// Generate and simulate server sell orders
+function simulateAskOrderBook(totalOrderSimulations) {
+  totalOrderSimulations =  15;
+  const minPrice = askOrderBook[askOrderBook.length - 1].price;
+  const maxPrice = askOrderBook[0].price;
+
+  // Generate random server sell orders with prices 1% to 10% above and below the askOrderBook price range
+  let serverSellOrders = generateOrderBook(totalOrderSimulations, minPrice * 0.9, maxPrice * 1.1);
+
+  // Combine the existing order book and server sell orders
+  //askOrderBook = serverBuyOrders.concat(askOrderBook);
+  askOrderBook = serverSellOrders;
+
+  // Sort the orders in ascending price order
+  askOrderBook.sort((a, b) => b.price - a.price);
+
+  // Calculate total sell amount
+  totalSellAmount = askOrderBook.reduce((total, order) => total + order.amounta, 0);
+
+  // Calculate cumulative sell amount and update marketSizeBarWidth
+  let cumulativeSellAmount = totalSellAmount;
+  let cumulativeAmountTmp = cumulativeSellAmount;
+  const updatedOrders = askOrderBook.map((order) => {
+
+
+    const marketSizeBarWidth = Math.ceil((cumulativeAmountTmp / totalSellAmount) * 100);
+    cumulativeSellAmount = cumulativeAmountTmp;
+    cumulativeAmountTmp -= order.amounta;
+
+    return {
+      coina: order.coina,
+      coinb: order.coinb,
+      amount: parseFloat(order.amounta.toFixed(4)),
+      price: parseFloat(order.price.toFixed(8)),
+      marketSizeBarWidth,
+      total: parseFloat(cumulativeSellAmount.toFixed(4)),
+    };
+
+    
+  });
+
+  console.log('updatedOrders: ', updatedOrders);
+  // Render the entire buy/bid order book
+  viewAskBook.render(updatedOrders);
+}
+
+// Call simulateaskOrderBook function with the desired number of order simulations
+simulateAskOrderBook(18);
+
+
+function runSimulation(maxDuration) {
+  const minOrders = 15;
+  const maxOrders = 25;
+  const minDelay = 300; // 1 second
+  const maxDelay = 600; // 2 seconds
+  maxDuration *= 1000; // in seconds
+
+  let elapsedTime = 0;
+
+  const intervalId = setInterval(() => {
+    const numOrders = Math.floor(Math.random() * (maxOrders - minOrders + 1)) + minOrders;
+    const delay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+
+    simulateBidOrderBook(numOrders);
+    simulateAskOrderBook(numOrders);
+
+    elapsedTime += delay;
+
+    if (elapsedTime >= maxDuration) {
+      clearInterval(intervalId);
+    }
+  }, minDelay);
+}
+
+// Initial simulation, 10 sec
+runSimulation(10);
+
+
+
+/*
+//generate bid orders randomly
+let bidOrderBook = generateOrderBook(15, 0.00000100, 0.00001000);
+let tmp = bidOrderBook;
+
+// Sort the orders in descending price order
+tmp.sort((a, b) => b.price - a.price);  
+
+let totalBuyAmount = 0;
+tmp.forEach((order) => {
+  totalBuyAmount += order.amounta;
+  //order.marketSizeBarWidth = Math.ceil((order.amount / cumulativeAmount) * 100);
+});
+
+
+// Assuming `tmp` contains the updated order book data
+let cumulativeBuyAmount = 0;
+const updatedOrders = tmp.map((order) => {
+
+  cumulativeBuyAmount += order.amounta;
+
+  const marketSizeBarWidth = Math.ceil(parseFloat(cumulativeBuyAmount / totalBuyAmount * 100));
+  return {
+    coina: order.coina,
+    coinb: order.coinb,
+    amount: parseFloat(order.amounta.toFixed(4)),
+    price: parseFloat(order.price.toFixed(8)),
+    marketSizeBarWidth,
+    total: parseFloat(cumulativeBuyAmount.toFixed(4)),
+  };
+});
+
+console.log('updatedOrders: ', updatedOrders);
+// Render the entire buy/bid orderbook
+view.render(updatedOrders);
+
+// Simulate "on event handler"
+function simulateOrderBook (totalOrderSimulations) {
+
+  const minPrice = bidOrderBook[bidOrderBook.length - 1].price;
+  const maxPrice = bidOrderBook[0].price;
+
+  // Generate random server buy orders with prices 1% to 10% above and below the bidOrderBook price range
+  let serverBuyOrders = generateOrderBook(totalOrderSimulations, minPrice * 0.9, maxPrice * 1.1);
+
+
+  // Combine the existing order book and server buy orders
+  bidOrderBook = serverBuyOrders;
+  //bidOrderBook = [...bidOrderBook, ...serverBuyOrders];
+
+  // Sort the orders in descending price order
+  bidOrderBook.sort((a, b) => b.price - a.price);
+
+  let totalBuyAmount = 0;
+  bidOrderBook.forEach((order) => {
+    totalBuyAmount += order.amounta;
+  });
+
+  let cumulativeBuyAmount = 0;
+  const updatedOrders = bidOrderBook.map((order) => {
+    cumulativeBuyAmount += order.amounta;
+
+    const marketSizeBarWidth = Math.ceil((cumulativeBuyAmount / totalBuyAmount) * 100);
+    return {
+      coina: order.coina,
+      coinb: order.coinb,
+      amount: parseFloat(order.amounta.toFixed(4)),
+      price: parseFloat(order.price.toFixed(8)),
+      marketSizeBarWidth,
+      total: parseFloat(cumulativeBuyAmount.toFixed(4)),
+    };
+  });
+
+
+  console.log('updatedOrders: ', updatedOrders);
+  // Render the entire buy/bid order book
+  view.render(updatedOrders);
+
+
+}
+*/
+
+
+  /*
+  // Or, if you only want to update specific nodes:
+  // Use Mikado's `update` method to update specific nodes with the server data
+  updatedOrders.forEach((order) => {
+    const existingRows = view.where({ price: order.price });
+    existingRows.forEach((row) => {
+      if (row.amounta !== order.amounta) {
+        view.update(row, order);   //update row(old) with order(new)
+
+        const marketSizeBar = row.querySelector('.marketSizeBar');
+        view.update(marketSizeBar, (node) => {
+          node.style.width = `${Math.ceil((order.amounta / totalBuyAmount) * 100)}%`;
+        });
+      }
+    });
+  });
+
+  // Use Mikado's `remove` method to remove nodes that are no longer present in the server data
+  const existingOrders = view.where({});
+  existingOrders.forEach((order) => {
+    const isOrderPresentInServerData = tmp.some((updatedOrder) => updatedOrder.price === order.price);
+    if (!isOrderPresentInServerData) {
+      view.remove(order);
+    }
+  });
+
+  // Use Mikado's `add` method to add new nodes to the view
+  const newOrders = tmp.filter((order) => !existingOrders.some((existingOrder) => existingOrder.price === order.price));
+  newOrders.forEach((order) => {
+    view.add(order);
+  });
+
+  // Perform any necessary calculations or updates after modifying the view
+  // ...
+
+  // Sync the view to apply the changes to the DOM
+  view.sync();
+  */
+
+
+
+</script>
+</body>
+</html>

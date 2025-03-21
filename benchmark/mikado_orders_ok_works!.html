@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mikado Performance Test</title>
+
+  <style>
+    /* DivTable.com */
+.divTable{
+  display: table;
+  width: 100%;
+}
+.divTableRow {
+  display: table-row;
+}
+.divTableHeading {
+  background-color: #EEE;
+  display: table-header-group;
+}
+.divTableCell, .divTableHead {
+  border: 1px solid #999999;
+  display: table-cell;
+  padding: 3px 10px;
+}
+.divTableHeading {
+  background-color: #EEE;
+  display: table-header-group;
+  font-weight: bold;
+}
+.divTableFoot {
+  background-color: #EEE;
+  display: table-footer-group;
+  font-weight: bold;
+}
+.divTableBody {
+  display: table-row-group;
+}
+  </style>
+</head>
+<body>
+  <table id="botLog">
+    <!-- Existing table rows -->
+    <tbody id="botLogBody">
+    <tr>
+      <td>aaaaaaaaaaaaaaaaaaaaaa</td>
+    </tr>
+  </tbody>
+  </table>
+
+<div >
+  <div class="divTable">
+    <div class="divTableRow">
+      <div class="divTableCell">Action</div>
+      <div class="divTableCell">Price</div>
+      <div class="divTableCell">Amount</div>
+      <div class="divTableCell">Cost</div>
+      <div class="divTableCell">Status</div>
+    </div>
+    <div class="divTableBody" id="botLogMikado">
+    </div>
+  </div>
+</div>
+
+<script src="mikado.min.js"></script>
+<script>
+
+const container = document.getElementById('botLogMikado');
+
+var tpl = (`
+  <div class="divTableRow" data-namee ="{{data.name}}">
+  <div class="divTableCell" data-label="Order">{{data.name}} - <div><span class="badge orderClass">{{data.orderType}}</span> <span class="badge bg-azure-lt">time: orderTime</span></div></div>
+    <div class="divTableCell text-muted yright" data-label="Price" ><div>{{(data.order.price).toFixed(8)}}</div></div>
+    <div class="divTableCell text-muted yright" data-label="Amount" ><div>{{(data.order.amount).toFixed(8)}}</div></div>
+    <div class="divTableCell text-muted yright" data-label="Cost" ><div>{{(data.order.cost).toFixed(8)}}</div></div>
+    <div class="divTableCell text-muted yright text-status" data-label="Status"><div><span class="badge bg-lime-lt">{{data.success}}</span></div>
+  </div>
+  </div>
+  `);
+
+var tplC = Mikado.compile(tpl);
+//var view = new Mikado(tplC);
+
+var view = new Mikado(container, tplC, {
+  on: {
+    create: function(node) {
+      console.log("created:", node);
+    },
+    insert: function(node) {
+      console.log("inserted:", node);
+    },
+    update: function(node) {
+      console.log("updated:", node);
+    },
+    change: function(node) {
+      console.log("changed:", node);
+    },
+    remove: function(node) {
+      console.log("removed:", node);
+    },
+    cache: false,
+  }
+});
+
+
+// Mount a DOM element to Mikado and render the template with data
+
+//view.mount(container);
+
+function generateRandomOrderData(amount) {
+  const orders = [];
+  for (let i = 0; i < amount; i++) {
+    const orderType = Math.random() < 0.5 ? 'buy' : 'sell';
+    const timestamp = Date.now();
+    const price = Math.random() * 100;
+    const amount = Math.random() * 10;
+    const cost = price * amount;
+    const success = Math.random() < 0.8;
+    const success2 = Math.random() < 0.8;
+    const error = success ? '' : 'Order failed';
+    const namee = success2 ? '' : 'iceeee';
+    const ych = { nnum: Math.random() };
+    const buftextBot = 'Bot buftext';
+
+    orders.push({
+      orderType,
+      name: namee,
+      order: {
+        timestamp,
+        price,
+        amount,
+        cost
+      },
+      success,
+      error,
+      ych,
+      buftextBot
+    });
+  }
+  return orders;
+}
+
+const orders = generateRandomOrderData(5);
+console.log('orders: ', orders);
+
+// Initialize variables
+let totalIntervals = 1;
+let mikadoTotalTime = 0;
+
+// Perform the tests
+for (let i = 0; i < totalIntervals; i++) {
+  // Mikado Approach
+  
+  console.time("Mikado Approach " + i);
+  const mikadoStartTime = performance.now();
+  
+  // Set the data for the view
+  //view.data(orders);
+  
+  // Render the entire table
+  view.render(orders);
+  //view.sync();
+  
+  const mikadoEndTime = performance.now();
+  const mikadoElapsedTime = mikadoEndTime - mikadoStartTime;
+  mikadoTotalTime += mikadoElapsedTime;
+  console.timeEnd("Mikado Approach " + i);
+}
+
+// Calculate average times
+const mikadoAverageTime = mikadoTotalTime / totalIntervals;
+
+// Output results
+console.log("========================================================");
+console.log("Mikado Total Time: ", mikadoTotalTime);
+console.log("Mikado Average Time: ", mikadoAverageTime);
+
+//add some data to last row of the element(view)
+view.append(generateRandomOrderData(3));
+
+//search
+var node = view.where({
+  name: "iceeee",
+  //error: 'Order failed',
+});
+
+
+//insert data with a specific index, add to index 12, 0=before, 
+//we need to do view.sync() after each manipulation
+  var ice = generateRandomOrderData(1);
+  view.add(ice[0], 12); 
+
+//prepend multiple data
+var ice = generateRandomOrderData(3);
+view.append(ice, 0); 
+
+ //Append multiple data items to the end:
+var ice = generateRandomOrderData(2);
+view.append(ice); 
+
+//remove node from view
+view.remove(node[0]);
+
+//prepend multiple data
+var ice = generateRandomOrderData(1);
+view.replace(node[0], ice[0]);    //view.replace(old, new);
+
+//Update a single data item/node:
+view.update(node, data);
+
+var updatedData = {
+  "orderType": "sell",
+  "name": "ayhaaaan ily",
+  "order": {
+    "timestamp": 1688310034273,
+    "price": 177.97638618096478,
+    "amount": 1117.402460745987106,
+    "cost": 99577.2171378185233
+  },
+  "success": false,
+  "error": "",
+  "ych": {
+    "nnum": 1111111111
+  },
+  "buftextBot": "Bot buftext haha iyaa"
+}
+
+/*
+view.update(node[0], updatedData);
+
+**Useful Helpers
+
+//Get a template root node from the DOM by index:
+var node = view.node(index);
+
+//Get a data item from the store by index:
+var data = view.data(index);
+
+//Get a data item from the store by node:
+var data = view.data(node);
+
+//Get the index from a given node:
+var index = view.index(node);
+
+//Find a node which corresponds to a data item (same reference):
+var node = view.find(data);
+
+//Find the first node which corresponds to a data item which has the same content (that may require each data item to be unique, otherwise use where):
+var node = view.search(data);
+
+//Find all nodes which match a given payload (will always return an array, empty if no results were found):
+var node = view.where({
+  title: "foo",
+  active: true,
+  content: "bar"
+});
+
+var node = view.where(data);
+
+//Get the length of all data items rendered (in a store):
+var length = view.length;
+
+Render vs. Refresh vs. Reconcile
+
+    Take advantage of Mikados 3 different render functions. Especially when reusing was disabled, this gives you full control.
+
+.refresh()  Just apply the data changes to the DOM. (did not add/remove/move)
+.reconcile()  Just apply item order by moving nodes along the shortest path. (did not add/remove/update)
+.render()   Perform a full update. (including: add/remove/reconcile/update)
+*/
+
+/*
+var data = [
+  {
+    user: "User A",
+    tweets: ["foo", "bar", "foobar"]
+  },
+  {
+    user: "User B",
+    tweets: ["foo", "bar", "foobar"]
+  },
+  {
+    user: "User C",
+    tweets: ["foo", "bar", "foobar"]
+  }
+];
+
+var tpl1 = `
+
+<table>
+        <tr>
+            <td>User:</td>
+            <td>{{ data.user }}</td>
+        </tr>
+        <tr>
+            <td>Tweets:</td>
+            <td>{{ data.tweets.length }}</td>
+        </tr>
+    </table>`;
+
+
+var tpl2 = Mikado.compile(tpl);
+var view2 = new Mikado(tpl2);
+
+
+view2.mount(container);
+
+view2.render(orders);
+*/
+</script>
+</body>
+</html>

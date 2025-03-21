@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mikado Performance Test</title>
+</head>
+<body>
+  <table id="botLog">
+    <!-- Existing table rows -->
+    <tr>
+      <td>aaaaaaaaaaaaaaaaaaaaaa</td>
+    </tr>
+  </table>
+
+<div id="botLogMikado">
+  
+</div>
+
+<script src="mikado.min.js"></script>
+<script>
+
+var tpl = (`<table><tr><td>{{data.orderType}}</td><td class="text-muted yright">{{data.order.price.toFixed(2)}}</td><td class="text-muted yright">{{data.order.amount.toFixed(2)}}</td><td class="text-muted yright">{{data.order.cost.toFixed(2)}}</td><td class="text-muted yright"><span class="status-badge badge"></span></td><td class="text-muted yright">{{data.error}}</td><td class="text-muted yright">{{data.ych.nnum.toFixed(2)}}</td><td class="text-muted yright">{{data.buftextBot}}</td></tr></table>`);
+var tplC = Mikado.compile(tpl);
+var view = new Mikado(tplC);
+
+// Mount a DOM element to Mikado and render the template with data
+const container = document.getElementById('botLogMikado');
+view.mount(container);
+
+function generateRandomOrderData(amount) {
+  const orders = [];
+  for (let i = 0; i < amount; i++) {
+    const orderType = Math.random() < 0.5 ? 'buy' : 'sell';
+    const timestamp = Date.now();
+    const price = Math.random() * 100;
+    const amount = Math.random() * 10;
+    const cost = price * amount;
+    const success = Math.random() < 0.8;
+    const error = success ? '' : 'Order failed';
+    const ych = { nnum: Math.random() };
+    const buftextBot = 'Bot buftext';
+
+    orders.push({
+      orderType,
+      order: {
+        timestamp,
+        price,
+        amount,
+        cost
+      },
+      success,
+      error,
+      ych,
+      buftextBot
+    });
+  }
+  return orders;
+}
+
+const orders = generateRandomOrderData(5);
+console.log('orders: ', orders);
+
+// Initialize variables
+let totalIntervals = 1;
+let mikadoTotalTime = 0;
+
+// Perform the tests
+for (let i = 0; i < totalIntervals; i++) {
+  // Mikado Approach
+  
+  console.time("Mikado Approach " + i);
+  const mikadoStartTime = performance.now();
+  
+  // Set the data for the view
+  //view.data(orders);
+  
+  // Render the entire table
+  view.render(orders);
+  //view.sync();
+  
+  const mikadoEndTime = performance.now();
+  const mikadoElapsedTime = mikadoEndTime - mikadoStartTime;
+  mikadoTotalTime += mikadoElapsedTime;
+  console.timeEnd("Mikado Approach " + i);
+}
+
+// Calculate average times
+const mikadoAverageTime = mikadoTotalTime / totalIntervals;
+
+// Output results
+console.log("========================================================");
+console.log("Mikado Total Time: ", mikadoTotalTime);
+console.log("Mikado Average Time: ", mikadoAverageTime);
+/*
+var data = [
+  {
+    user: "User A",
+    tweets: ["foo", "bar", "foobar"]
+  },
+  {
+    user: "User B",
+    tweets: ["foo", "bar", "foobar"]
+  },
+  {
+    user: "User C",
+    tweets: ["foo", "bar", "foobar"]
+  }
+];
+
+var tpl1 = `
+
+<table>
+        <tr>
+            <td>User:</td>
+            <td>{{ data.user }}</td>
+        </tr>
+        <tr>
+            <td>Tweets:</td>
+            <td>{{ data.tweets.length }}</td>
+        </tr>
+    </table>`;
+
+
+var tpl2 = Mikado.compile(tpl);
+var view2 = new Mikado(tpl2);
+
+
+view2.mount(container);
+
+view2.render(orders);
+*/
+</script>
+</body>
+</html>

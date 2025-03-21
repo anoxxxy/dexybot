@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mikado Approach</title>
+  <script src="mikado.debug.js"></script>
+</head>
+<body>
+
+  <script>
+    
+
+const tpl = (`<div>{{data.content}}</div>`);
+const tplC = Mikado.compile(tpl);
+const view = Mikado(document.body, tplC, {cache:false});
+
+
+var n = 10000;
+
+console.time("total")
+var list = new Array(n)
+for (var i = 0; i < n; i++) 
+  list[i]= {content: 'hi'};
+
+view.render(list);
+console.timeEnd("total")
+
+
+  </script>
+</body>
+</html>
