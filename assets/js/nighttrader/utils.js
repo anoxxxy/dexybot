@@ -47,5 +47,37 @@ ych.get_cookie = function(cname) {
 };
 
 
+ych.buy_fee = function(coina, coinb, discount) {
+  if (ych.data.coininfos == undefined) return 0.;
+  if (!(coinb in ych.data.coininfos)) return 0.;
+  const feeb_mul = ych.data.coininfos[coinb].fee.buyfee*(100.-discount) / 100.;
+  const market_name = coina+"-"+coinb;
+  if (ych.data.markets == undefined) return feeb_mul;
+  if (!market_name in ych.data.markets) return feeb_mul;
+  const market = ych.data.markets[market_name];
+  if (market.fee.over) {
+    feeb_mul = market.fee.buyfee;
+  }
+  console.log('ych.fee_buy: ', feeb_mul);
+  return feeb_mul;
+};
+
+ych.sell_fee = function(coina, coinb, discount) {
+  if (ych.data.coininfos == undefined) return 0.;
+  if (!(coina in ych.data.coininfos)) return 0.;
+  const feea_mul = ych.data.coininfos[coina].fee.sellfee*(100.-discount) / 100.;
+  const market_name = coina+"-"+coinb;
+  if (ych.data.markets == undefined) return feea_mul;
+  if (!market_name in ych.data.markets) return feea_mul;
+  const market = ych.data.markets[market_name];
+  if (market.fee.over) {
+    feea_mul = market.fee.sellfee;
+  }
+  console.log('ych.fee_sell: ', feea_mul);
+  return feea_mul;
+};
+
+
+
 });
 

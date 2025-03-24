@@ -978,12 +978,18 @@ placeAskOrder = async (price, amount, cost) => {
       intervalPeriod: this.intervalPeriod.map(String),
     };
 
-    // Store botData in localStorage, excluding eventHandlers
-    await localStorage.setItem(`tradingbot_${this.botId}`, JSON.stringify(botData));
+    let xybotData = storage_l.get("xybot") || {}; // Get xybot or initialize it
+		xybotData.bots = xybotData.bots || {}; // Ensure "bots" property exists
+
+		// Assume `this.botId` and `botData` are defined in your context
+		let botId = `tradingbot_${this.botId}`; // Create bot key dynamically
+		xybotData.bots[botId] = botData; // Store bot data inside `xybot.bots`
+		storage_l.set("xybot", xybotData);
+
   }
 
   async loadFromLocalStorage() {
-    const botData = JSON.parse(localStorage.getItem(`tradingbot_${this.botId}`));
+    const botData = storage_l.get("xybot")?.bots?.[`tradingbot_${this.botId}`] || null;
 
     if (botData) {
       Object.assign(this, botData);

@@ -2263,11 +2263,34 @@ function groupMarketsAndFindVolumeExtremes(conditionFn) {
       const amount = parseFloat(sellAmountInput.val());
       const cost = (price * amount);
 
-      const marketFee = ych.data.coininfos[xybot.current_market.coina ].fee.sellfee;
-      const fee = amount * marketFee;
+      //const marketFee = ych.data.coininfos[xybot.current_market.coina ].fee.sellfee;
+      //const fee = amount * marketFee;
+/*
+      const marketFee = ych.data.coininfos[xybot.current_market.coina].fee.sellfee;
+			const feeDiscount = (100 - ych.data.profile.discount) / 100;
+			const fee = cost * marketFee * feeDiscount;
 
       sellCostFee.text(fee.toFixed(8));
       sellCostEl.text((cost).toFixed(8));
+			*/
+			let discount = 0;
+		  if (ych.data.profile != null) {
+		    discount = ych.data.profile.discount;
+		  }
+		  const coina = xybot.current_market.coina;
+		  const coinb = xybot.current_market.coinb;
+
+		  const feea_mul = ych.sell_fee(coina, coinb, discount);
+		  const ordera_min = ych.data.coininfos[coina].fee.minorder;
+		  const amounta = Math.floor(0.5 + amount*1e8);
+		  const amountb = Math.floor(0.5 + amount*price*1e8);
+		  const feea = Math.floor(0.5 + amounta * feea_mul);
+		  const totala = amounta + feea;
+
+
+
+      sellCostFee.text((feea/1e8).toFixed(8));
+      sellCostEl.text((totala/1e8).toFixed(8));
   });
 
 
@@ -2278,11 +2301,33 @@ function groupMarketsAndFindVolumeExtremes(conditionFn) {
       const amount = parseFloat(buyAmountInput.val());
       const cost = (price * amount);
 
-      const marketFee = ych.data.coininfos[xybot.current_market.coinb ].fee.buyfee;
-      const fee = cost * marketFee;
+      //const marketFee = ych.data.coininfos[xybot.current_market.coinb ].fee.buyfee;
+      //const fee = cost * marketFee;
+      /*
+      const marketFee = ych.data.coininfos[xybot.current_market.coinb].fee.buyfee;
+			const feeDiscount = (100 - ych.data.profile.discount) / 100;
+			const fee = cost * marketFee * feeDiscount;
 
       buyCostFee.text(fee.toFixed(8));
       buyCostEl.text((cost + fee).toFixed(8));
+      */
+      let discount = 0;
+		  if (ych.data.profile != null) {
+		    discount = ych.data.profile.discount;
+		  }
+		  const coina = xybot.current_market.coina;
+		  const coinb = xybot.current_market.coinb;
+
+      const feeb_mul = ych.buy_fee(coina, coinb, discount);
+		  const orderb_min = ych.data.coininfos[coinb].fee.minorder;
+		  const amounta = Math.floor(0.5 + amount*1e8);
+		  const amountb = Math.floor(0.5 + amount*price*1e8);
+		  const feeb = Math.floor(0.5 + amountb * feeb_mul);
+		  const totalb = amountb + feeb;
+
+		  buyCostFee.text((feeb/1e8).toFixed(8));
+      buyCostEl.text((totalb/1e8).toFixed(8));
+
   });
 
 
@@ -3181,7 +3226,7 @@ console.log('Spread Percentage:', spreadPercentage + '%');
       return;
     }
 
-    
+
     const marketPairSplitted = selectedMarketPair.split('-');
     //buy and sell side data
     $(this).attr('data-market-pair', selectedMarketPair);
@@ -3198,6 +3243,13 @@ console.log('Spread Percentage:', spreadPercentage + '%');
 
     xybot.current_market.coina = marketPairSplitted[0];
     xybot.current_market.coinb = marketPairSplitted[1];
+
+    console.log('selectedMarketPair: ', selectedMarketPair);
+    console.log('selectedMarketPair coina: ', xybot.current_market.coina);
+    console.log('selectedMarketPair coinb: ', xybot.current_market.coinb);
+    
+    
+
 
     console.log('marketPairSplitted selectedMarketPair: ', selectedMarketPair);
     //console.log('marketPairSplitted[0]: ', marketPairSplitted[0]);
@@ -3217,11 +3269,25 @@ console.log('Spread Percentage:', spreadPercentage + '%');
       xybot.part.orderbook.update();  //render orderbook in bot page
       console.log('update bot orderbook!');
 
-      const buyFee = ych.data.coininfos[marketPairSplitted[1]].fee.buyfee*100;
-      const sellFee = ych.data.coininfos[marketPairSplitted[0]].fee.sellfee*100;
+      /*let buyFee = ych.data.coininfos[marketPairSplitted[1]].fee.buyfee*100;
+      let sellFee = ych.data.coininfos[marketPairSplitted[0]].fee.sellfee*100;
+      const feeDiscount = ych.data.profile.discount;
+
+      buyFee = buyFee*(100-feeDiscount)/100;
+      sellFee = sellFee*(100-feeDiscount)/100;
+      */
+      let feeDiscount = 0;
+		  if (ych.data.profile != null) {
+		    feeDiscount = ych.data.profile.discount;
+		  }
+
+      let buyFee = (ych.data.coininfos[xybot.current_market.coinb].fee.buyfee * (100 - feeDiscount));
+			let sellFee = (ych.data.coininfos[xybot.current_market.coina].fee.sellfee * (100 - feeDiscount));
+
+
       
-      $('[data-market-fee="coinb"]').text((buyFee).toFixed(2));
-      $('[data-market-fee="coina"]').text((sellFee).toFixed(2));
+      $('[data-market-fee="coinb"]').text((buyFee).toFixed(3));
+      $('[data-market-fee="coina"]').text((sellFee).toFixed(3));
 
       $('[data-market="name"]').text(xybot.current_market.coina+'/'+xybot.current_market.coinb);
 
@@ -3233,8 +3299,8 @@ console.log('Spread Percentage:', spreadPercentage + '%');
       //console.log('marketPairSplitted[1]: ' + marketPairSplitted[1])
 
       //buy and sell side data
-      $('[data-market="coina"]').text(marketPairSplitted[0]);
-      $('[data-market="coinb"]').text(marketPairSplitted[1]);
+      $('[data-market="coina"]').text(xybot.current_market.coina); //marketPairSplitted[0]);
+      $('[data-market="coinb"]').text(xybot.current_market.coinb); //marketPairSplitted[1]);
 
       //TRADINGBOT DOM - update user bot balance data
       if (ych.user) {
@@ -3464,14 +3530,14 @@ console.log('Spread Percentage:', spreadPercentage + '%');
     }
 
     const coininfob = ych.data.coininfos[coinb];
-    const feeb_mul = coininfob.fee.buyfee;
-    const coinb_min = coininfob.fee.minamount;
-    //const price = ych.gui.get_input_amount('makebuy-price-text');
-    //const amounta = ych.gui.get_input_amount('makebuy-quantity-text');
-
+    let discount = 0;
+    if (ych.data.profile != null) {
+      discount = ych.data.profile.discount;
+    }
+    
+    const feeb_mul = ych.buy_fee(coina, coinb, discount);
     price = ych.gui.get_bigIntValue(price);
     amounta = ych.gui.get_bigIntValue(amounta);
-
     const amountb = amounta * price / BigInt(1e8);
     const feeb = BigInt(Math.floor(0.5 + Number(amountb) * feeb_mul));
     const totalb = amountb + feeb;
@@ -3480,7 +3546,6 @@ console.log('Spread Percentage:', spreadPercentage + '%');
 
     let totalb_via_debit = 0n;
     let totalb_via_txouts = totalb;
-
     if (balance.debit > 0) {
       let can_use_from_debit = balance.debit - balance.ordersindebit;
       if (can_use_from_debit < 0) {
@@ -3839,25 +3904,18 @@ console.log('Spread Percentage:', spreadPercentage + '%');
     }
 
     const coininfoa = ych.data.coininfos[coina];
-    const feea_mul = coininfoa.fee.sellfee;
-    const coina_min = coininfoa.fee.minamount;
-    //const price = ych.gui.get_input_amount('makesell-price-text');
-    //const amounta = ych.gui.get_input_amount('makesell-quantity-text');
+    
 
-    //var priceAmount1 = BigInt(price * 1e8);
-    //var quantity1 = BigInt(amounta * 1e8);
-    //console.log('priceAmount1: ' + priceAmount1);
-    //console.log('quantity1: ' + quantity1);
-
+    let discount = 0;
+    if (ych.data.profile != null) {
+      discount = ych.data.profile.discount;
+    }
+    const feea_mul = ych.sell_fee(coina, coinb, discount);
     price = ych.gui.get_bigIntValue(price);
     amounta = ych.gui.get_bigIntValue(amounta);
-    console.log('price: ' + price);
-    console.log('amounta: ' + amounta);
-
     const amountb = amounta * price / BigInt(1e8);
     const feea = BigInt(Math.floor(0.5 + Number(amounta) * feea_mul));
     const totala = amounta + feea;
-
 
     const balance = ych.data.profile.balances[coina];
 
@@ -4598,7 +4656,7 @@ $('a[data-set-network]').on('click', function(e) {
     });
 
     //set the default network in session storage
-    storage_s.set('xybot', { 'network': network });
+    storage_l.set('xybot', { 'network': network });
 
     Router.navigate('logout');
 

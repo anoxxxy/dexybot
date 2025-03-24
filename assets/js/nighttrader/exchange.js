@@ -22,8 +22,8 @@ xybot.api = {testnet: 'testnet-api.nighttrader.exchange', mainnet: 'my-api.night
 
 //set default network
 const validNetworks = ["mainnet", "testnet"];
-const network = validNetworks.includes(storage_s.get("xybot")?.network) 
-  ? storage_s.get("xybot").network 
+const network = validNetworks.includes(storage_l.get("xybot")?.network) 
+  ? storage_l.get("xybot").network 
   : "mainnet"; // Default to "mainnet" if missing or invalid.
 
 xybot.network = xybot.api[network];

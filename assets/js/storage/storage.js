@@ -74,12 +74,9 @@ const storage_l = function(
 ){
   return b
     ? {                 // if JSON is supported
-      get: function(    // provide a getter function
-        c               // that takes a key
-      ){
-        return a[c] &&  // and if the key exists
-          b.parse(a[c]) // parses and returns it,
-      },
+      get: function(c) {
+			  return a[c] ? b.parse(a[c]) : null;
+			},
 
       set: function(     // and a setter function
         c,               // that takes a key
