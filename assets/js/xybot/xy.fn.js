@@ -70,6 +70,54 @@ $(function() {
 //console.log(truncatedString);
 
 
+// Convert your object of bots into an array with the key names preserved as ID values:
+xy_fn.convertBotsObjectToArray = function(someObject) {
+  return Object.entries(someObject).map(([key, value]) => {
+    return {
+      id: key,
+      ...value
+    };
+  });
+}
+
+// Example usage:
+// const someObject = {
+//   bot1: { name: 'Helper Bot', function: 'assistance' },
+//   bot2: { name: 'Moderator Bot', function: 'moderation' },
+//   bot3: { name: 'Analytics Bot', function: 'analytics' }
+// };
+//
+// const botsArray = convertBotsObjectToArray(someObject);
+// console.log(botsArray);
+
+
+xy_fn.getRemainingTime = function(start, end, fromNow) {
+    if (fromNow || fromNow == 'true')
+    	fromNow = true;
+    else
+    	fromNow = false;
+    console.log('getRemainingTime fromNow: ', fromNow);
+    const isFromNow = fromNow; // Normalize boolean/string
+    const startTime = isFromNow ? new Date() : new Date(start);
+    const endTime = new Date(end);
+
+    const diffMs = endTime - startTime;
+    if (diffMs <= 0) return "0m";
+
+    const minutesTotal = Math.floor(diffMs / (1000 * 60));
+    const hours = Math.floor(minutesTotal / 60);
+    const minutes = minutesTotal % 60;
+
+    return hours ? (minutes ? `${hours}h ${minutes}m` : `${hours}h`) : `${minutes}m`;
+};
+
+
+
+// Example usage
+//const start = "2025-03-25 04:06";
+//const end = "2025-03-25 05:59";
+
+//console.log(getRemainingTime(start, end)); // Output: "1h 53m"
 
 xy_fn.formatDate = (timestamp, format = 'HH:mm:ss') => {
     const date = new Date(timestamp);
@@ -192,6 +240,124 @@ $(botOrderType).on('input', function() {
 
 });
 
+$("body").on("click", ".remove-bot", function(e) {
+	let $button = $(this);
+	let botId = $button.attr('data-bot-id');
+
+	const currentBotId = 'tradingbot_' + botId;
+
+	let xybotData = storage_l.get("xybot") || {};  // Get xybot data
+		let bots = xybotData.bots || {};  // Ensure "bots
+
+	  const bot = bots[currentBotId] || null;  // Find bot by key
+	  console.log('start bot: ', currentBotId);
+	  
+	  
+	  if (bot) {
+	  	// Remove the specific bot from the nested structure
+			//delete xybotData.bots[currentBotId];
+			botManager.deleteBot(botId);
+
+			// Save the updated data back to localStorage
+			//storage_l.set("xybot", xybotData);
+
+	  	iziToast.success({
+        icon: 'ti ti-check',
+        title: 'Success',
+        message: `Bot ${botId} was deleted`,
+      });
+	  	//xybot.renderBotList();
+	  }else {
+	  	iziToast.error({
+        icon: 'ti ti-alert-circle',
+        title: 'Error',
+        message: `Bot ${botId} Not found`,
+      });
+	  }
+
+});
+
+
+$("body").on("click", "[data-bot-start]", function(e) {
+    let $button = $(this);
+    let botId = $button.attr('data-bot-start');
+    
+    const currentBotId = 'tradingbot_' + botId;
+
+	  let xybotData = storage_l.get("xybot") || {};  // Get xybot data
+		let bots = xybotData.bots || {};  // Ensure "bots
+
+	  const bot = bots[currentBotId] || null;  // Find bot by key
+	  console.log('check start/stop bot: ', currentBotId);
+	  
+	  if (!bot) {
+	  	iziToast.error({
+        icon: 'ti ti-alert-circle',
+        title: 'Error',
+        message: `Bot ${botId} Not found`,
+      });
+	  }
+	  
+
+    console.log('data-bot-start: ', botId);
+    
+    // Call bot start/stop functions
+    //if(!botManager.isRunning(botId)) {
+    if ($button.hasClass("btn-success")) {
+        // Bot is currently running → Stop it
+    	//botManager.createBot(bot);
+    	
+    	console.log('iceeee start Bot');
+
+        //xybot.dexyBot.load(botId);
+        //xybot.dexyBot.stop(botId);
+
+        // Change button to "Stop"
+        $button
+            .removeClass("btn-success")
+            .addClass("btn-danger")
+            .html('<i class="ti ti-player-stop"></i> Stop');
+
+            botManager.startBot(bot.botId);
+
+		      iziToast.success({
+		        icon: 'ti ti-check',
+		        title: 'Starting',
+		        message: `"${botId}", please wait...`,
+		      });
+
+
+    } else {
+        // Bot is stopped → Start it
+    	
+
+    	console.log('iceeee stop Bot');
+
+        //xybot.dexyBot.load(botId);
+        //xybot.dexyBot.start();
+
+        // Change button to "Start"
+        $button
+            .removeClass("btn-danger")
+            .addClass("btn-success")
+            .html('<i class="ti ti-player-play"></i> Start');
+        botManager.stopBot(bot.botId);
+
+        iziToast.warning({
+		        icon: 'ti ti-check',
+		        title: 'Stopping',
+		        message: ` "${botId}", please wait...`,
+		      });
+    }
+
+    // Update bot list UI
+    //xybot.renderBotList();
+});
+
+
+	
+      
+
 
   $('#botButton').on('click', function(e) {
     e.preventDefault();
@@ -200,16 +366,27 @@ $(botOrderType).on('input', function() {
     if (!xybot.checkPrivKey())
       return;
 
+    //check if market is selected
+    const tradingPair = $('#tradingbot select.select-market').attr('data-market-pair');
+
+    if (tradingPair == '') {
+    	iziToast.error({
+        icon: 'ti ti-alert-circle',
+        title: 'Error',
+        message: "Hey dude, Choose a market first!",
+      });
+
+
+    	return;
+    }
+
     console.log('botButton: clicked');    
-    let botStatus = $(this).attr('data-bot');
 
-    if (botStatus == 'start') {
+    
 
-      let startBot = true;
-      // Remove existing red borders
-      //$("#intervalPeriod .datetime").removeClass("border border-danger border-success");
 
       // Iterate through each interval
+      /*
       $('#intervalPeriod .row').each(function() {
         var startInput = $(this).find("input[data-bot='intervalStart']");
         var endInput = $(this).find("input[data-bot='intervalEnd']");
@@ -219,9 +396,7 @@ $(botOrderType).on('input', function() {
           console.log('compareTime error');
         }
       });
-
-      if (!startBot)
-        return;
+      */
 
 
 
@@ -237,9 +412,11 @@ $(botOrderType).on('input', function() {
 
       
 
-      const tradingPair = $('#tradingbot select.select-market').attr('data-market-pair');
-      const maxOpenBidOrders = $('#tradingbot input[data-bot="maxOpenBidOrders"]').val();
-      const maxOpenAskOrders = $('#tradingbot input[data-bot="maxOpenAskOrders"]').val();
+      //const tradingPair = $('#tradingbot select.select-market').attr('data-market-pair');
+      let maxOpenBidOrders = $('#tradingbot input[data-bot="maxOpenBidOrders"]').val();
+      maxOpenBidOrders = parseInt(maxOpenBidOrders);
+      let maxOpenAskOrders = $('#tradingbot input[data-bot="maxOpenAskOrders"]').val();
+      maxOpenAskOrders = parseInt(maxOpenAskOrders);
       const minOrderCost = $('#tradingbot input[data-bot="minOrderCost"]').val();
       const maxOrderCost = $('#tradingbot input[data-bot="maxOrderCost"]').val();
       const buyBalance = $('#tradingbot input[data-bot="buyBalance"]').val();
@@ -294,8 +471,12 @@ $(botOrderType).on('input', function() {
       const cancelOrdersOnStop = cancelOrdersonStopMapping[cancelOrdersonStopValue];
 
 
-      let intervalPeriods = [];
+      
+
+      /*let intervalPeriods = [];
       $('#tradingbot #intervalPeriod .row').each(function() {
+      	var botDuration = $('#tradingbot #bot-time-duration').val();
+
         var start = $(this).find('input[data-bot="intervalStart"]').val();
         var end = $(this).find('input[data-bot="intervalEnd"]').val();
 
@@ -312,8 +493,81 @@ $(botOrderType).on('input', function() {
           'end': endDate
         });
       });
+      */
 
-      //console.log('intervalPeriods: ', intervalPeriods)
+      /*
+
+      //start time with inputs 
+
+      let intervalPeriods = [];
+$('#tradingbot #intervalPeriod .row').each(function() {
+    var botDuration = parseInt($('#tradingbot #bot-time-duration').val(), 10);
+    var start = $(this).find('input[data-bot="intervalStart"]').val();
+    var currentDate = new Date();
+    var currentYear = currentDate.getFullYear();
+    var currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
+    var currentDay = String(currentDate.getDate()).padStart(2, '0');
+    
+    // Create start date
+    var startDate = currentYear + '-' + currentMonth + '-' + currentDay + ' ' + start;
+    var startDateTime = new Date(startDate);
+    
+    // Calculate end date and time
+    var endDateTime = new Date(startDateTime.getTime() + botDuration * 60000);
+    
+    // Check if end time crosses to the next day
+    var endYear = endDateTime.getFullYear();
+    var endMonth = String(endDateTime.getMonth() + 1).padStart(2, '0');
+    var endDay = String(endDateTime.getDate()).padStart(2, '0');
+    var endHours = String(endDateTime.getHours()).padStart(2, '0');
+    var endMinutes = String(endDateTime.getMinutes()).padStart(2, '0');
+    
+    var endDate = endYear + '-' + endMonth + '-' + endDay + ' ' + endHours + ':' + endMinutes;
+    
+    intervalPeriods.push({
+        'start': startDate,
+        'end': endDate
+    });
+});
+*/
+      //Calulate end-time depeding on bot duration (in minutes)
+      let intervalPeriods = [];
+			var botDuration = parseInt($('#tradingbot #bot-time-duration').val(), 10);
+			var currentDate = new Date();
+
+			var startYear = currentDate.getFullYear();
+			var startMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
+			var startDay = String(currentDate.getDate()).padStart(2, '0');
+			var startHours = String(currentDate.getHours()).padStart(2, '0');
+			var startMinutes = String(currentDate.getMinutes()).padStart(2, '0');
+
+			var startDate = startYear + '-' + startMonth + '-' + startDay + ' ' + startHours + ':' + startMinutes;
+
+			// Calculate end date and time
+			var endDateTime = new Date(currentDate.getTime() + botDuration * 60000);
+
+			// Get end date components
+			var endYear = endDateTime.getFullYear();
+			var endMonth = String(endDateTime.getMonth() + 1).padStart(2, '0');
+			var endDay = String(endDateTime.getDate()).padStart(2, '0');
+			var endHours = String(endDateTime.getHours()).padStart(2, '0');
+			var endMinutes = String(endDateTime.getMinutes()).padStart(2, '0');
+
+			var endDate = endYear + '-' + endMonth + '-' + endDay + ' ' + endHours + ':' + endMinutes;
+
+			intervalPeriods.push({
+			    'start': startDate,
+			    'end': endDate
+			});
+
+
+
+      console.log('intervalPeriods: ', intervalPeriods)
+      console.log('maxOpenBidOrders: ', maxOpenBidOrders);
+      console.log('maxOpenAskOrders: ', maxOpenAskOrders);
+
+      //remove botId from botManager
+      botManager.deleteBot("Bot_" + tradingPair);
 
       //configure tradingbot
       xybot.dexyBot.config({
@@ -328,6 +582,7 @@ $(botOrderType).on('input', function() {
           'bid': maxOpenBidOrders,
           'ask': maxOpenAskOrders
         },
+        'botDuration': botDuration,
         'intervalPeriod': intervalPeriods,
         'useLiquidity': useLiqudity,
         'waitTimeRange': {
@@ -360,25 +615,67 @@ $(botOrderType).on('input', function() {
       });
 
       //start dexyBot!
-      xybot.dexyBot.start();
+      //xybot.dexyBot.start();
+      xybot.dexyBot.create();
+
+      botManager.createBot({
+        'botId': "Bot_" + tradingPair, //botId 
+        'tradingPair': tradingPair,
+        'buyBalance': buyBalance,
+        'sellBalance': sellBalance, //coina
+        'minimalSpread': 0.00000100,
+        'minOrderCost': minOrderCost,
+        'maxOrderCost': maxOrderCost,
+        'maxOpenOrders': {
+          'bid': maxOpenBidOrders,
+          'ask': maxOpenAskOrders
+        },
+        'botDuration': botDuration,
+        'intervalPeriod': intervalPeriods,
+        'useLiquidity': useLiqudity,
+        'waitTimeRange': {
+          'min': minRandomTradeTime,
+          'max': maxRandomTradeTime
+        },
+        'cancelOrdersOnStop': cancelOrdersOnStop,
+        'orderType': OrderType,
+        // Bid price action settings
+        'bidSettings': {
+          'action': {
+            'trend': bidPriceAction,
+            'minPrice': bidRandomMinPrice,
+            'maxPrice': bidRandomMaxPrice,
+            'minQty': bidRandomMinQty,
+            'maxQty': bidRandomMaxQty
+          },
+        },
+        // Ask price action settings
+        'askSettings': {
+          'action': {
+            'trend': askPriceAction,
+            'minPrice': askRandomMinPrice,
+            'maxPrice': askRandomMaxPrice,
+            'minQty': askRandomMinQty,
+            'maxQty': askRandomMaxQty
+          },
+        }
+
+      });
+
+      iziToast.success({
+        icon: 'ti ti-check',
+        title: 'Success',
+        message: `Bot "Bot_" ${tradingPair}" created please wait...`,
+      });
+
+
+      //xybot.renderBotList();
 
       //console.log('xybot.dexyBot: ', xybot.dexyBot);
 
 
 
-    } else {
-
-      //$('#tradingbot [data-bot="options"]').velocity('slideDown', { duration: 300 });
-
-      //show tradingbot active elements
-      $('#tradingbot [data-bot="active"]').velocity('fadeIn', {
-        duration: 300
-      });
-
-      //stop dexyBot
-      xybot.dexyBot.stop();
-
-    }
+    
 
   });
   
@@ -396,7 +693,6 @@ $(botOrderType).on('input', function() {
   const botLogInterval = $('#data_bot_log [data-bot="interval"]');
 
   const botTradingPair = $('#data_bot_log [data-bot="tradingPair"]');
-  const botStatus = $('#tradingbot [data-bot="status"]');
   const botTradingOptions = $('#tradingbot [data-bot="options"] input');
   const botIntervalPeriodButtons = $('#intervalPeriod button');
   const botOverlay = $('#tradingbot .overlay_message');
@@ -457,7 +753,6 @@ $(botOrderType).on('input', function() {
     botButtonText.text('Stop Bot');
     botButtonSpinner.removeClass('hidden');
     botTradingPair.text(xybot.dexyBot.botId);
-    botStatus.removeClass('bg-red-lt').addClass('bg-green-lt').text('Bot is active');
     botOverlay.removeClass('d-none');
 
     // Disable trading bot options and interval period buttons
@@ -488,10 +783,9 @@ $(botOrderType).on('input', function() {
     })
 
     // Update elements related to "stop bot"
-    botButton.attr('data-bot', 'start').removeClass('btn-red').addClass('btn-lime');
-    botButtonText.text('Start Bot');
+    //botButton.attr('data-bot', 'start').removeClass('btn-red').addClass('btn-lime');
+    //botButtonText.text('Start Bot');
     botButtonSpinner.addClass('hidden');
-    botStatus.removeClass('bg-green-lt').addClass('bg-red-lt').text('Not running');
     botOverlay.addClass('d-none');
 
     // Enable trading bot options and interval period buttons
@@ -513,7 +807,6 @@ $(botOrderType).on('input', function() {
   });
 
   xybot.dexyBot.on('error', function(data) {
-    botStatus.removeClass('bg-green-lt').addClass('bg-red-lt').text('Not running');
 
     let newRow = `
     <tr><td colspan="5" class="text-muted">
@@ -523,6 +816,48 @@ $(botOrderType).on('input', function() {
 
     addBotLogRow(newRow);
   });
+
+  xybot.dexyBot.on('botCreated', function(data) {
+  	console.log('Bot Created successfully!', data);
+  	iziToast.success({
+        icon: 'ti ti-check',
+        title: 'Success',
+        message: data.message,
+      });
+
+    //update bot list
+    xybot.renderBotList();
+  });
+
+
+  xybot.dexyBot.on('botCreateError', function(data) {
+  	console.log('Bot Create failed!', data);
+  	iziToast.error({
+        icon: 'ti ti-alert-circle',
+        title: 'Error',
+        message: data.message,
+      });
+
+    //update bot list
+    xybot.renderBotList();
+  });
+
+  /*
+  xybot.dexyBot.on('botTimeError', function(data) {
+  	console.log('Bot Time Error!', data);
+  	iziToast.error({
+        icon: 'ti ti-alert-circle',
+        title: 'Error',
+        message: data.message,
+      });
+
+    //update bot list
+    xybot.renderBotList();
+  });
+  */
+
+
+
 
   xybot.dexyBot.on('intervalChange', function(data) {
 
@@ -982,7 +1317,7 @@ xy_fn.tablePagination = function (showPerPage = 10, containerId, pagingContentId
   // Remove existing event listeners from the container
   $('#' + containerId).off();
 
-  console.log('xy_fn.tablePagination: ', showPerPage, containerId, pagingContentId);
+  //console.log('xy_fn.tablePagination: ', showPerPage, containerId, pagingContentId);
 
   var number_of_items = $('#' + pagingContentId).children().length;
   var number_of_pages = Math.ceil(number_of_items / showPerPage);
@@ -1256,7 +1591,12 @@ enableTableSorting(table_balance);
     $('.modal').modal('hide');
   });
 
-
+  //auto click on login when we got 6 chars for 2fa
+$("body").on("change keyup", "#page-login-text-totp", function(e) {
+    if ($(this).val().length === 6) {
+        $("#page-login-button-login").click();
+    }
+});
 
 
 

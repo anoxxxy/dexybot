@@ -48,6 +48,7 @@
     <!-- Tabler Icons-->
 
     <link href="./assets/css/tabler/tabler-icons.min.css" rel="stylesheet"/>
+    
 
 
     <link href="./assets/css/tabler/demo.min.css?1685973381" rel="stylesheet"/>
@@ -1223,6 +1224,40 @@
 
               <div class="row tab-pane tab-pane-spa" data-page="bot" id="bot">
 
+              	<div class="row">
+                  <div class="col-12 col-md-9 mb-2">
+		                <div class="card">
+		                  <div class="card-header">
+		                    <h3 class="card-title">DexyBot - Bot List!</h3>
+		                  </div>
+
+				              <div class="card-body">
+				              	<!-- Bot List -->
+				              	<div class="table-container">
+									        <table class="table table-hover mb-0">
+									          <thead>
+									            <tr>
+									              <th>Bot</th>
+									              <th>Status</th>
+									              <th>Trades</th>
+									              <th>Run-Time</th>
+									              <th>Settings</th>
+									              <th class="text-end">Actions</th>
+									            </tr>
+									          </thead>
+									          <!-- Bot list will be inserted here by Mikado -->
+									          <tbody id="botListTableBody">
+									            
+									          </tbody>
+									        </table>
+									      </div>
+
+				              </div>
+				            </div>
+				          </div>
+				        </div>
+
+
                 <div class="row">
                   <div class="col-12 col-md-9 " >
                 <div class="card">
@@ -1345,7 +1380,7 @@
                               <span class="input-group-text">
                                 Max
                               </span>
-                              <input type="text" placeholder="10" value="50" autocomplete="off" class="form-control text-end" data-bot="maxOpenBidOrders">
+                              <input type="text" placeholder="10" value="200" autocomplete="off" class="form-control text-end" data-bot="maxOpenBidOrders">
                               <span class="input-group-text">
                                 orders
                               </span>
@@ -1371,11 +1406,11 @@
                               <div class="form-label">Bid Trend <small class="text-muted">(set price action)</small></div>
                               <div class="form-selectgroup">
                               <label class="form-selectgroup-item">
-                                <input type="radio" name="botBidPriceAction-radio" value="none" class="form-selectgroup-input" checked="">
+                                <input type="radio" name="botBidPriceAction-radio" value="none" class="form-selectgroup-input">
                                 <span class="form-selectgroup-label"><i class="ti ti-line-dashed"></i> Neutral</span>
                               </label>
                               <label class="form-selectgroup-item" data-bs-toggle="tooltip" data-bs-placement="top" title="Place orders higher than the current bid price">
-                                <input type="radio" name="botBidPriceAction-radio" value="above" class="form-selectgroup-input">
+                                <input type="radio" name="botBidPriceAction-radio" value="above" class="form-selectgroup-input" checked="">
                                 <span class="form-selectgroup-label"><i class="ti ti-trending-up"></i> Above</span>
                               </label>
                               <label class="form-selectgroup-item" data-bs-toggle="tooltip" data-bs-placement="top" title="Place orders lower than the current bid price">
@@ -1494,7 +1529,7 @@
                               <span class="input-group-text">
                                 Max
                               </span>
-                              <input type="text" placeholder="10" value="50" autocomplete="off" class="form-control text-end" data-bot="maxOpenAskOrders">
+                              <input type="text" placeholder="10" value="200" autocomplete="off" class="form-control text-end" data-bot="maxOpenAskOrders">
                               <span class="input-group-text">
                                 orders
                               </span>
@@ -1520,7 +1555,7 @@
                             <div class="form-label">Ask Trend <small class="text-muted">(set price action)</small></div>
                               <div class="form-selectgroup">
                                 <label class="form-selectgroup-item">
-                                  <input type="radio" name="botAskPriceAction-radio" value="none" class="form-selectgroup-input" checked="">
+                                  <input type="radio" name="botAskPriceAction-radio" value="none" class="form-selectgroup-input">
                                   <span class="form-selectgroup-label"><i class="ti ti-line-dashed"></i> Neutral</span>
                                 </label>
                                 <label class="form-selectgroup-item" data-bs-toggle="tooltip" data-bs-placement="top" title="Place orders higher than the current ask price">
@@ -1528,7 +1563,7 @@
                                   <span class="form-selectgroup-label"><i class="ti ti-trending-up"></i> Above</span>
                                 </label>
                                 <label class="form-selectgroup-item" data-bs-toggle="tooltip" data-bs-placement="top" title="Place orders lower than the current ask price">
-                                  <input type="radio" name="botAskPriceAction-radio" value="below" class="form-selectgroup-input">
+                                  <input type="radio" name="botAskPriceAction-radio" value="below" class="form-selectgroup-input" checked="">
                                   <span class="form-selectgroup-label"><i class="ti ti-trending-down"></i> Below</span>
                                 </label>
                             </div>
@@ -1659,6 +1694,19 @@
                         </div>
 
                         <div class="mb-3">
+                        	<label for="bot-time-duration">Select Interval:</label>
+													<select id="bot-time-duration" name="bot-time-duration" class="form-select form-control">
+													  <option value="30">30 min</option>
+													  <option value="60">1 hour</option>
+													  <option value="240">4 hours</option>
+													  <option value="480">8 hours</option>
+													  <option value="1440" selected>24 hours</option>
+													  <option value="2160">36 hours</option>
+													  <option value="2880">48 hours</option>
+													  <option value="4320">72 hours</option>
+													</select>
+
+													<div class="hidden">
                           <label class="form-label">Period Intervals</label>
                           <div class="" data-bot="intervalPeriod" id="intervalPeriod">
                             
@@ -1689,12 +1737,16 @@
                                   
                               </div>
                             </div>
-                            <div class="col-auto">
+                            <!-- Add New intervals is implemented, yet not necessary to use now -->
+                            <div class="col-auto ">
                               <button class="btn btn-outline-info" data-bot="interval-add" data-bs-toggle="tooltip" data-bs-placement="top" title="Add an extra Interval ">+</button>
                             </div>
                           </div>
                             
                           </div>
+                          </div>
+
+
 
                           </div>
 
@@ -1758,7 +1810,7 @@
                           <div class="col-12 col-md-6">
                             <button class="btn btn-lime w-50 float-right" id="botButton" data-bot="start">
                               <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="mx-2 spinner hidden "><path d="M12,1A11,11,0,1,0,23,12,11,11,0,0,0,12,1Zm0,19a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z" opacity=".25"/><circle cx="12" cy="2.5" r="1.5"><animateTransform attributeName="transform" type="rotate" dur="0.75s" values="0 12 12;360 12 12" repeatCount="indefinite"/></circle></svg>
-                               <span>Start Bot</span>
+                               <span>Create Bot</span>
                             </button>
                           </div>
                           
@@ -3384,6 +3436,57 @@
     </div><!-- page-wrapper -->
 
 <!-- Modals --> 
+
+  <!-- Edit Bot Modal -->
+  <div class="modal fade" id="editBotModal" tabindex="-1" aria-labelledby="editBotModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editBotModalLabel">Edit Bot</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editBotForm">
+            <div class="mb-3">
+              <label for="editBotName" class="form-label">Bot ID</label>
+              <input type="text" class="form-control" id="editBotName" required disabled>
+            </div>
+            <div class="mb-3">
+              <label for="editMarketPair" class="form-label">Market Pair</label>
+              <input type="text" class="form-control" id="editMarketPair" required disabled>
+            </div>
+            <div class="row mb-3">
+              <div class="col">
+                <label for="editBotInterval" class="form-label">Interval</label>
+                <select class="form-select" id="editBotInterval" required>
+                  <option value="5m">5 minutes</option>
+                  <option value="15m">15 minutes</option>
+                  <option value="30m">30 minutes</option>
+                  <option value="1h">1 hour</option>
+                </select>
+              </div>
+              <div class="col">
+                <label for="editBotStrategy" class="form-label">Strategy</label>
+                <select class="form-select" id="editBotStrategy" required>
+                  <option value="MACD crossover">MACD crossover</option>
+                  <option value="RSI bounce">RSI bounce</option>
+                  <option value="EMA crossover">EMA crossover</option>
+                  <option value="Bollinger bounce">Bollinger bounce</option>
+                  <option value="Volume breakout">Volume breakout</option>
+                </select>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="saveBotBtn">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
 <!-- Right  Modal Menu - Profile/Setting -->
   <div class="modal modal-blur fade modal-left" id="modal_markets" tabindex="-1" role="dialog" >
   <div class="modal-dialog modal-dialog-slideup" role="document">

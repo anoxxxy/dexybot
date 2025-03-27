@@ -18,7 +18,7 @@ class BotManager {
 
     // Attach event listeners
     bot.on('botTimeError', (data) => {
-    	console.log('bot.botTimeError- data: ', data);
+    	console.log('Bot Time Error!', data);
 	  	iziToast.error({
 	        icon: 'ti ti-alert-circle',
 	        title: 'Error',
@@ -29,37 +29,11 @@ class BotManager {
 	    xybot.renderBotList();
     });
 
-
-    bot.on('error', (data) => {
-    	console.log('bot.error- data: ', data);
-    	xybot.renderBotList()
-    });
-    bot.on('emptyBalance', (data) => {
-    	console.log('bot.emptyBalance- data: ', data);
-	  	iziToast.error({
-	        icon: 'ti ti-alert-circle',
-	        title: 'Error',
-	        message: `Insufficient balance for botId: ${data.botId}`,
-	      });
-
-	    //update bot list
-	    xybot.renderBotList();
-    });
-
-
-
-    bot.on('start', (data) => {
-    	console.log('bot.start- data: ', data);
-    	xybot.renderBotList()
-    });
-    bot.on('stop', (data) => {
-    	console.log('bot.stop- data: ', data);
-    	xybot.renderBotList()
-    });
-    bot.on('orderPlace', (data) => {
-    	console.log('bot.orderPlace- data: ', data);
-    	xybot.renderBotList()
-    });
+    bot.on('botTimeError', (data) => xybot.renderBotList());
+    bot.on('error', (data) => xybot.renderBotList());
+    bot.on('start', (data) => xybot.renderBotList());
+    bot.on('stop', (data) => xybot.renderBotList());
+    bot.on('orderPlace', (data) => xybot.renderBotList());
 ;
 
 
@@ -124,8 +98,7 @@ class BotManager {
   async deleteBot(botId) {
     const bot = this.bots.get(botId);
     if (!bot) {
-    	return;
-      //throw new Error(`Bot with ID "${botId}" does not exist.`);
+      throw new Error(`Bot with ID "${botId}" does not exist.`);
     }
 
     // Stop the bot if it is running
@@ -153,7 +126,7 @@ class BotManager {
 
 const botManager = new BotManager();
 
-const bbotManagerOld = {
+const bbotManager = {
   bots: {}, // Store all running bots
 
   // Create and initialize a bot
@@ -273,7 +246,7 @@ class tradingbot {
   }
 
   // Method to configure the bot properties
-  config({botId, tradingPair, buyBalance = 0, sellBalance = 0, minimalSpread, minOrderCost = 0.00002500, maxOrderCost = 0.00005000, maxOpenOrders = {bid: 50, ask: 50}, botDuration= 1440, intervalPeriod = [], useLiquidity = false, waitTimeRange = {min: 10, max: 20}, cancelOrdersOnStop = { cancelBuyOrders: false, cancelSellOrders: false }, orderType = 'both', bidSettings, askSettings}) {
+  config({botId, tradingPair, buyBalance = 0, sellBalance = 0, minimalSpread, minOrderCost = 0.00002500, maxOrderCost = 0.00005000, maxOpenOrders = {bid: 50, ask: 50}, intervalPeriod = [], useLiquidity = false, waitTimeRange = {min: 10, max: 20}, cancelOrdersOnStop = { cancelBuyOrders: true, cancelSellOrders: true }, orderType = 'both', bidSettings, askSettings}) {
     if (!['buy', 'sell', 'both'].includes(orderType)) {
       this.trigger('error', {'message': 'Invalid orderType. Valid options are "buy", "sell", or "both"'});
       throw new Error('DexyBot Error - Invalid orderType. Valid options are "buy", "sell", or "both".');
@@ -298,26 +271,24 @@ class tradingbot {
     this.minOrderCost = parseFloat(minOrderCost);
     this.maxOrderCost = parseFloat(maxOrderCost);
     this.minimalSpread = minimalSpread;
-    this.maxOpenBidOrders = Math.max(parseInt(maxOpenOrders.bid), 10); // Enforce minimum value of 10
-    this.maxOpenAskOrders = Math.max(parseInt(maxOpenOrders.ask), 10); // Enforce minimum value of 10
+    this.maxOpenBidOrders = Math.max(parseInt(maxOpenOrders.bid), 3); // Enforce minimum value of 3
+    this.maxOpenAskOrders = Math.max(parseInt(maxOpenOrders.ask), 3); // Enforce minimum value of 3
     this.openBidOrders = [];
     this.openAskOrders = [];
     this.closedBidOrders = [];
     this.closedAskOrders = [];
     this.isMarketMaking = false;
     
-    this.botDuration = botDuration;
     // Set default intervalPeriod if not passed
-    
     const now = new Date();
     if (!intervalPeriod.length) {
       const startTime = new Date(now.getTime() + 1 * 10000); // Current time + 10 seconds
-      const endTime = new Date(now.getTime() + 30 * 60000); // Current time + 30 minutes
+      const endTime = new Date(now.getTime() + 5 * 60000); // Current time + 5 minutes
 
       this.intervalPeriod = [{ start: startTime, end: endTime }];
     } else 
       this.intervalPeriod = intervalPeriod;
-      
+
 
 
     this.currentIntervalIndex = -1;
@@ -381,24 +352,6 @@ trigger(eventName, ...args) {
     console.warn(`⚠️ No valid handlers for event: ${eventName}`);
     return;
   }
-
-  
-  // Ensure botId is added to the event args if it's not already there
-  /*args.forEach(arg => {
-    if (arg && !arg.botId) {
-      arg.botId = this.botId; // Add botId to the argument if it's not present
-    }
-  });
-  */
-
-   // Ensure args[0] is an object, then add botId to it.
-  if (args.length > 0 && typeof args[0] === 'object') {
-    args[0].botId = this.botId; // Add botId to the first object in the arguments
-  } else {
-    args.unshift({ botId: this.botId }); // If no object is present, create a new one with botId
-  }
-
-
 
   handlers
     .filter((handler) => typeof handler === 'function') // Remove null/undefined/non-functions
@@ -482,39 +435,6 @@ trigger(eventName, ...args) {
 
   };
 
-/**
- * Generates an interval period based on the current time and specified duration.
- * 
- * @param {number} botDuration - Duration in minutes for the interval
- * @returns {Object} An object containing start and end times for the interval
- */
-generateDurationTime = () => {
-
-				var currentDate = new Date();
-
-				var startYear = currentDate.getFullYear();
-				var startMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
-				var startDay = String(currentDate.getDate()).padStart(2, '0');
-				var startHours = String(currentDate.getHours()).padStart(2, '0');
-				var startMinutes = String(currentDate.getMinutes()).padStart(2, '0');
-
-				var startDate = startYear + '-' + startMonth + '-' + startDay + ' ' + startHours + ':' + startMinutes;
-
-				// Calculate end date and time
-				var endDateTime = new Date(currentDate.getTime() + this.botDuration * 60000);
-
-				// Get end date components
-				var endYear = endDateTime.getFullYear();
-				var endMonth = String(endDateTime.getMonth() + 1).padStart(2, '0');
-				var endDay = String(endDateTime.getDate()).padStart(2, '0');
-				var endHours = String(endDateTime.getHours()).padStart(2, '0');
-				var endMinutes = String(endDateTime.getMinutes()).padStart(2, '0');
-
-				var endDate = endYear + '-' + endMonth + '-' + endDay + ' ' + endHours + ':' + endMinutes;
-
-				this.intervalPeriod = [{ start: startDate, end: endDate }];
-}
-
 create = async () => {
 	try {
 		this.saveToLocalStorage();
@@ -563,12 +483,7 @@ start = async () => {
   }
   
 
-  //re-configure start time and end time upon every start, depending on botDuration
-  this.generateDurationTime();
-
   try {
-
-
   
   //init and validate intervals
   const intervals = await this.generateIntervals();
@@ -588,7 +503,7 @@ start = async () => {
   }
   this.isMarketMaking = true; //init bot start
   
-  this.trigger('start', {});  // Trigger the 'start' event
+  this.trigger('start');  // Trigger the 'start' event
   console.log(`DexyBot (${this.botId}) started.`);
 
   this.saveToLocalStorage();  //save to localStorage, for users to track bot trades
@@ -652,10 +567,6 @@ start = async () => {
         }
       } else {
         const waitTime = interval.start - currentTime;
-        // if waitTime is negative, there is no intervals left, quit 
-        if (waitTime <= 0)
-        	await this.stop();
-
         console.log(`DexyBot (${this.botId}) - Delay until next interval: ${parseInt(waitTime / 1000)} seconds`);
 
         setTimeout(checkIntervalForTrading, waitTime);
@@ -731,7 +642,7 @@ start = async () => {
     // This is needed after cancellation of orders
     this.saveToLocalStorage();
 
-    this.trigger('stop', {});  // Trigger the 'stop' event
+    this.trigger('stop');  // Trigger the 'stop' event
 
   };
 
@@ -1127,11 +1038,7 @@ placeBidOrder = async (price, amount, cost) => {
 
     if (isSuccess) {
       newOrder.id = placeOrderCall.index;
-      this.openBidOrders.push({
-      	...newOrder,
-      	success: isSuccess,
-      	error: placeOrderCall.error || ''
-      });
+      this.openBidOrders.push(newOrder);
       this.buyBalance -= cost;
     } else {
       console.log(`DexyBot (${this.botId}) - placeBidOrder Rejected: `, placeOrderCall);
@@ -1157,11 +1064,7 @@ placeAskOrder = async (price, amount, cost) => {
 
     if (isSuccess) {
       newOrder.id = placeOrderCall.index;
-      this.openAskOrders.push({
-      	...newOrder,
-      	success: isSuccess,
-      	error: placeOrderCall.error || ''
-      });
+      this.openAskOrders.push(newOrder);
       this.sellBalance -= amount;
 
     } else {
@@ -1207,6 +1110,21 @@ placeAskOrder = async (price, amount, cost) => {
     return this.isMarketMaking;
   }
 
+  // Get the current interval index
+  getCurrentInterval = async () => {
+    if (this.currentIntervalIndex >= 0 && this.currentIntervalIndex < this.intervalPeriod.length) {
+      return this.currentIntervalIndex + 1;
+    }
+    return null;
+  }
+
+  // Get the upcoming intervals
+  getUpcomingIntervals = async () =>  {
+    if (this.currentIntervalIndex >= 0 && this.currentIntervalIndex < this.intervalPeriod.length - 1) {
+      return this.intervalPeriod.slice(this.currentIntervalIndex + 1);
+    }
+    return [];
+  }
   
 
   // Generate the start times between the specified dates with the given hour and minute
@@ -1246,7 +1164,81 @@ placeAskOrder = async (price, amount, cost) => {
 
 	  return intervals;
 	};
-	
+	generateIntervals2 = async () => {
+    const intervals = [];
+    const currentTime = new Date();
+
+    // Function to strip out the seconds from the date
+    const stripSeconds = (date) => {
+        return new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes());
+    };
+
+    console.log('this.intervalPeriod: ', this.intervalPeriod);
+
+    for (let i = 0; i < this.intervalPeriod.length; i++) {
+        const start = stripSeconds(new Date(this.intervalPeriod[i].start)).getTime();
+        const end = stripSeconds(new Date(this.intervalPeriod[i].end)).getTime();
+        const currentTimeStripped = stripSeconds(currentTime).getTime();
+
+        // ✅ Check: Start time must be before end time
+        if (start >= end) {
+            console.log(`❌ DexyBot (${this.botId}) - ERROR: Start time must be before end time. Interval: ${new Date(start)} - ${new Date(end)}`);
+            this.trigger('botTimeError', { 'message': `Invalid interval. Start time must be before end time.` });
+            return null; // Stop generating intervals and return null
+        }
+
+        // ✅ Check: Current time must be within the interval
+        if (currentTimeStripped < start || currentTimeStripped > end) {
+            console.log(`❌ DexyBot (${this.botId}) - ERROR: Current time (${new Date(currentTimeStripped)}) is not within the interval: ${new Date(start)} - ${new Date(end)}`);
+            this.trigger('botTimeError', { 'message': `Invalid interval. Current time is not within the allowed range.` });
+            return null; // Stop generating intervals and return null
+        }
+
+        // ✅ Passed all checks → Add to intervals list
+        intervals.push({ start, end });
+    }
+
+    return intervals;
+};
+
+  // Generate the start times between the specified dates with the given hour and minute
+  generateIntervalsOrf = async () => {
+  const intervals = [];
+  const currentTime = new Date();
+
+  // Function to strip out the seconds from the date
+  const stripSeconds = (date) => {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes());
+  };
+
+  console.log('this.intervalPeriod: ', this.intervalPeriod);
+
+  for (let i = 0; i < this.intervalPeriod.length; i++) {
+    const start = stripSeconds(new Date(this.intervalPeriod[i].start)).getTime();
+    const end = stripSeconds(new Date(this.intervalPeriod[i].end)).getTime();
+    const currentTimeStripped = stripSeconds(currentTime).getTime();
+
+    if (start < currentTimeStripped) {
+    	this.trigger('botTimeError', {'message': `Invalid interval. Start time is in the past. Interval: ${new Date(start)}, current time: ${currentTime}`});
+      console.log(`DexyBot (${this.botId}) - ERROR: Invalid interval. Start time is in the past. Interval: ${new Date(start)}, current time: ${currentTime}`);
+      //await this.stop();
+      return null; // Stop generating intervals and return null
+    }
+
+    if (start <= end) {
+      intervals.push({ start, end });
+    } else {
+      console.log(`DexyBot (${this.botId}) - ERROR: Invalid interval. Start time is after end time. Interval: ${new Date(start)} - ${new Date(end)},  start: ${start}, end: ${end}`);
+      this.trigger('botTimeError', {'message': `Invalid interval. Start time is after end time. Interval: ${new Date(start)} - ${new Date(end)},  start: ${start}, end: ${end}`});
+
+      //await this.stop();
+      return null; // Stop generating intervals and return null
+    }
+  }
+
+  return intervals;
+};
+
 
 
   // Fetch the bid and ask prices from the exchange for the trading pair

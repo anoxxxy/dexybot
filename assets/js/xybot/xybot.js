@@ -156,6 +156,7 @@ $(function() {
   //xybot.vars.mikado.marketOverallView = Mikado(containerTplMarketOverall, marketOverallTplC, { store: xybot.vars.mikado.marketOverall });
   xybot.vars.mikado.marketOverallView = Mikado(containerTplMarketOverall, marketOverallTplC, { 
     on: {
+    				/*
             create: function(node) {
               console.log("marketOverallView - created:", node);
             },
@@ -171,6 +172,7 @@ $(function() {
             remove: function(node) {
               console.log("marketOverallView - removed:", node);
             },
+            */
             cache: true,
             //store: xybot.vars.mikado.marketOverall
           }
@@ -884,6 +886,164 @@ const containerMenuMarketsData = document.getElementById("selectMenuMarketData")
           }
         });
 
+
+xybot.getBotStatus = function(status) {
+	console.log('getBotStatus status: ', status);
+  if (status || status == 'true')
+    return '<i class="ti ti-circle-check" style="color: #10b981; stroke-width="2""></i><span class="badge bg-green-lt">Running</span>';
+  else 
+  	return '<i class="ti ti-player-stop" style="color: #ef4444; stroke-width="2""></i><span class="badge bg-red-lt">Stopped</span>';
+}
+xybot.getBotStatusButtons = function(status, botId) {
+  if (status || status == 'true')
+    return `<button class="btn btn-sm btn-danger toggle-bot py-1 px-2" data-bot-start="${botId}" data-bot-id="${botId}">
+          	 <i class="ti ti-player-stop"></i> Stop
+        	</button>`;
+  else 
+  	return `<button class="btn btn-sm btn-success toggle-bot py-1 px-2" data-bot-start="${botId}" data-bot-id="${botId}}">
+          	 <i class="ti ti-player-play"></i> Start
+        	</button>`;
+}
+
+
+
+xybot.botCagetorizeOrders = function(openBidOrders, openAskOrders) {
+    // Initialize arrays to hold the categorized orders
+    let successBidCount = 0;
+    let failedBidCount = 0;
+    let successAskCount = 0;
+    let failedAskCount = 0;
+
+    // Process Bid Orders
+    openBidOrders.forEach(order => {
+        if (order.success) {
+            successBidCount++;
+        } else {
+            failedBidCount++;
+        }
+    });
+
+    // Process Ask Orders
+    openAskOrders.forEach(order => {
+        if (order.success) {
+            successAskCount++;
+        } else {
+            failedAskCount++;
+        }
+    });
+    
+    const resultHTML = `
+        <div>
+
+            <div><strong>Bid S:</strong> ${successBidCount} <i class="ti ti-checks text-success"></i></div>
+            <div><strong>Bid F :</strong> ${failedBidCount} <i class="ti ti-exclamation-circle text-danger"></i></div>
+
+            <div><strong>Ask S:</strong> ${successAskCount} <i class="ti ti-checks text-success"></i></div>
+            <div><strong>Ask F:</strong> ${failedAskCount} <i class="ti ti-exclamation-circle text-danger"></i></div>
+        </div>
+    `;
+
+    // Return the HTML content
+    return resultHTML;
+}
+
+
+const tplBotListHTML =(`<tr>
+      <td>
+        <div class="text-secondary">{{data.botId}}</div>
+        <div class="market-pair text-primary"><a href="#trade/{{data.tradingPair}}">{{data.tradingPair}}</a></div>
+      </td>
+      <td>
+        <div class="status-{{data.isMarketMaking}}">
+					<span>{{#=xybot.getBotStatus(data.isMarketMaking)}}</span>
+        </div>
+      </td>
+      <td>
+      	{{(data.openBidOrders.length + data.openAskOrders.length) }}
+				{{#xybot.botCagetorizeOrders(data.openBidOrders, data.openAskOrders)}}
+      	</td>
+      <td>
+        <div>
+        	<i class="ti ti-clock-hour-2"></i>
+        	<span>{{ xy_fn.getRemainingTime(data.intervalPeriod[0].start, data.intervalPeriod[0].end, data.isMarketMaking) }}</span>
+				</div>
+      </td>
+      <td>
+        <small class="d-block text-secondary">Interval: {}</small>
+        <small class="d-block text-secondary">...</small>
+      </td>
+      <td class="text-end">
+        <div class="mb-1">
+					<button class="btn btn-sm btn-outline-danger me-1 remove-bot py-1 px-2" data-bot-id="{{data.botId}}">
+          	<i class="ti ti-x"></i> 
+        	</button>
+				</div>
+				<div>
+					<span>{{#=xybot.getBotStatusButtons(data.isMarketMaking, data.botId)}}</span>
+				</div>
+
+
+      </td>
+          </tr>
+    `);
+/*<button class="btn btn-sm btn-outline-secondary me-1 edit-bot py-1 px-2" data-bot-id="{{data.botId}}">
+          	<i class="ti ti-edit"></i> Edit
+        	</button>
+        	*/
+const containerBotList = document.getElementById("botListTableBody");
+        const tplBotListHTMLC = Mikado.compile(tplBotListHTML);
+        xybot.view.viewBotListData = Mikado(containerBotList, tplBotListHTMLC, {
+          on: {
+            create: function(node) {
+              console.log("viewBotListData - created:", node);
+            },
+            insert: function(node) {
+              console.log("viewBotListData - inserted:", node);
+            },
+            update: function(node) {
+              console.log("viewBotListData - updated:", node);
+            },
+            change: function(node) {
+              console.log("viewBotListData - changed:", node);
+            },
+            remove: function(node) {
+              console.log("viewBotListData - removed:", node);
+            },
+            cache: false,
+          }
+        });
+
+const $editBotModal = $('#editBotModal');
+
+// Attach event handlers to the dynamically created buttons
+  $("body").on("click", ".edit-bot", function(e) {
+    openEditBotModal($(this).data('bot-id'));
+  });
+  // Open the edit modal for a bot
+function openEditBotModal(id) {
+  let currentEditBotId = id;
+  currentEditBotId = 'tradingbot_' + currentEditBotId;
+
+  let xybotData = storage_l.get("xybot") || {};  // Get xybot data
+	let bots = xybotData.bots || {};  // Ensure "bots
+
+  const bot = bots[currentEditBotId] || null;  // Find bot by key
+  console.log('edit bot: ', currentEditBotId, bot);
+  
+  if (bot) {
+    $('#editBotName').val(bot.botId);
+    $('#editMarketPair').val(bot.tradingPair);
+    $('#editBotInterval').val(bot.waitUntilTrade);
+    $('#editBotStrategy').val(bot.orderType);
+    
+    $editBotModal.modal('show');
+  }
+
+  
+}
+
+
+
 /*Coingecko API */
 // CoinGecko API endpoint for BTC
 
@@ -1308,7 +1468,7 @@ xybot.renderMarketMenuData = function () {
   const selectedMarketIndex = allMarkets.findIndex(item => item.name === findMarket);
   xybot.view.viewMenuMarketsData.render( allMarkets[selectedMarketIndex] );
 
-  console.log('allMarkets[selectedMarketIndex]: ', allMarkets[selectedMarketIndex]);
+  //console.log('allMarkets[selectedMarketIndex]: ', allMarkets[selectedMarketIndex]);
   if (selectedMarket === ""){
     marketMenuBtnCenter.innerHTML = `<span class="coina">${allMarkets[selectedMarketIndex].coina}</span><span class="text-muted fw-normal coinb">/${allMarkets[selectedMarketIndex].coinb}</span>`;
     marketMenuBtnLeft.innerHTML =
@@ -1328,7 +1488,7 @@ xybot.update_userorders = function(market = '', updatedOrders = []) {
   // Otherwise, set the default market to the user's chosen market on the page.
   market = (market !== '') ? market : xybot.current_market.market;
 
-  console.log('==xybot.update_userorders market: ', market, xybot.current_market.market );
+  //console.log('==xybot.update_userorders market: ', market, xybot.current_market.market );
   
   // Only update or render the chosen market of the page if it is different from the current market.
   // If the provided 'market' is not the same as the current market (xybot.current_market.market),
@@ -1336,8 +1496,8 @@ xybot.update_userorders = function(market = '', updatedOrders = []) {
   if (market !== xybot.current_market.market)
     return ;
 
-  console.log('==xybot.update_userorders: ', updatedOrders );
-  console.log('==xybot.update_userorders xybot.current_market: ', xybot.current_market);
+  //console.log('==xybot.update_userorders: ', updatedOrders );
+  //console.log('==xybot.update_userorders xybot.current_market: ', xybot.current_market);
 
   let userBuyOrders = ych.data.profile.buys[xybot.current_market.market];
   
@@ -1347,11 +1507,11 @@ xybot.update_userorders = function(market = '', updatedOrders = []) {
   for (var i=0; i < userBuyOrders.length; i++) {
     userBuyOrders[i].side = 'buy';
   }
-  console.log('userBuyOrders: ', userBuyOrders);
+  //console.log('userBuyOrders: ', userBuyOrders);
   for (var i=0; i < userSellOrders.length; i++) {
     userSellOrders[i].side = 'sell';
   }
-  console.log('userSellOrders: ', userSellOrders);
+  //console.log('userSellOrders: ', userSellOrders);
 
   const allUserOrdersUpdated = [...userBuyOrders, ...userSellOrders];
 
@@ -1393,7 +1553,7 @@ xybot.update_userorders = function(market = '', updatedOrders = []) {
 
   renderUserOrders(allUserOrdersUpdated)
   .then(() => {
-    console.log('renderUserOrders market: ', market);
+    //console.log('renderUserOrders market: ', market);
     // Code to execute after rendering user orders successfully
     xy_fn.tablePagination(10, 'table_orders', 'userOrders');
 
@@ -1409,7 +1569,7 @@ xybot.update_userorders = function(market = '', updatedOrders = []) {
 
 
 function renderUserOrders(allUserOrdersUpdated) {
-  console.log('renderUserOrders: ', allUserOrdersUpdated)
+  //console.log('renderUserOrders: ', allUserOrdersUpdated)
   return new Promise((resolve, reject) => {
     try {
       xybot.view.viewUserOrders.render(allUserOrdersUpdated);
@@ -1704,7 +1864,7 @@ function renderUserDeposits(allUserDepositsUpdated) {
 }
 
 xybot.update_markettrades = function (market, marketTrades = []) {
-  console.log('xybot.update_markettrades: ', market, marketTrades); 
+  //console.log('xybot.update_markettrades: ', market, marketTrades); 
 
 const marketUpdate = market;
 /*
@@ -1806,13 +1966,13 @@ for (let marketGroup of xybot.vars.mikado.groupedMarketPairs.markets) {
 
 // Render the markets table using the groupedMarketPairs
 if (marketIsChanged) {
-  console.log('xybot.update_markettrades - marketIsChanged');
+  //console.log('xybot.update_markettrades - marketIsChanged');
   xybot.vars.mikado.groupedMarketPairs.marketOverall.lowestVolumeMarketOverall
   xybot.vars.mikado.groupedMarketPairs.marketOverall.lowestVolumeMarketOverall
 
   //render marketOverall View
   const marketOverall = ({"highestVolumeMarketOverall": xybot.vars.mikado.groupedMarketPairs.marketOverall.highestVolumeMarketOverall, "lowestVolumeMarketOverall": xybot.vars.mikado.groupedMarketPairs.marketOverall.lowestVolumeMarketOverall, "lastAddedMarkets": xybot.vars.mikado.groupedMarketPairs.lastAddedMarkets, "btcData": (xybot.vars.mikado.groupedMarketPairs.btcData)});
-  console.log('xybot.update_markettrades marketOverall: ', marketOverall);
+  //console.log('xybot.update_markettrades marketOverall: ', marketOverall);
   //xybot.vars.mikado.marketOverall[0] = marketOverall;
   xybot.vars.mikado.marketOverallView.render(marketOverall);
 
@@ -1886,7 +2046,7 @@ if (marketIsChanged) {
  marketTrades is the tradehistory, array
 */
 xybot.marketTradesUpdate = function(marketTrades = []) {
-  console.log('xybot.marketTradesUpdate: ', marketTrades);
+  //console.log('xybot.marketTradesUpdate: ', marketTrades);
 
   if (xybot.current_market.market == '' || !xybot.current_market.market)
     return;
@@ -1900,7 +2060,7 @@ xybot.marketTradesUpdate = function(marketTrades = []) {
   if (totalTrades == 0)
     marketTrades = ych.data.trades[xybot.current_market.market];
 
-  console.log('xybot.marketTradesUpdate render: ', marketTrades, 'total length: ', totalTrades);
+  //console.log('xybot.marketTradesUpdate render: ', marketTrades, 'total length: ', totalTrades);
 
   let trades = [];
   let digits = market.digits == 0 ? 8 : market.digits;
@@ -2412,6 +2572,8 @@ function groupMarketsAndFindVolumeExtremes(conditionFn) {
         const pageSelectedMarket = $('#'+Router.urlParams.page+' select.select-market');
         //pageSelectedMarket.trigger('change');
       }
+      //update bot list, reset bot to nor running on initial page-load
+      xybot.renderBotList(true);
       
 
     })
@@ -2830,6 +2992,32 @@ function groupMarketsAndFindVolumeExtremes(conditionFn) {
     $('[data-set-theme]').attr(themeStorageKey, 'dark')
   }
 
+  //render bot list
+ xybot.renderBotList = function(botReset = false) {
+    let xybotData = storage_l.get("xybot") || {};  // Get xybot data
+    let bots = xybotData.bots || {};  // Ensure "bots"
+
+    // ✅ Reset all bots' isMarketMaking flag if botReset is true
+    if (botReset) {
+        Object.values(bots).forEach(bot => {
+            bot.isMarketMaking = false;
+        });
+
+        // ✅ Save updated data back to storage
+        storage_l.set("xybot", xybotData);
+    }
+
+    // ✅ Loop through each bot and access its properties
+    Object.values(bots).forEach(bot => {
+        const totalTrades = (bot.openBidOrders?.length || 0) + (bot.openAskOrders?.length || 0);
+        console.log(`Bot ID: ${bot.botId}, isMarketMaking: ${bot.isMarketMaking}, orderType: ${bot.orderType}, tradingPair: ${bot.tradingPair}, trades: ${totalTrades}`);
+
+        botManager.createBot(bot);
+    });
+
+    // ✅ Render updated bot list
+    xybot.view.viewBotListData.render(xy_fn.convertBotsObjectToArray(bots));
+};
 
 
   //Balance
@@ -2937,7 +3125,7 @@ function convertKeysToNumber(obj) {
       return;
     }
 
-    console.log('xybot.part.orderbook.update Router.urlParams.page : ', Router.urlParams.page)
+    //console.log('xybot.part.orderbook.update Router.urlParams.page : ', Router.urlParams.page)
     const selectedMarket = document.querySelector('#' + Router.urlParams.page + ' select.select-market');
     
 
@@ -3586,7 +3774,7 @@ console.log('Spread Percentage:', spreadPercentage + '%');
       txouts.sort(function(a, b) {
         return Number(a.free - b.free);
       });
-      console.log("input txouts:", txouts);
+      //console.log("input txouts:", txouts);
 
       if (coininfob.type == "txout_t1") {
 
