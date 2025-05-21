@@ -63,11 +63,12 @@ $(function() {
   //observable Mikado array
   xybot.vars.mikado.marketOverall = Mikado.array();   //[0] contains = ({highestVolumeMarketOverall, lowestVolumeMarketOverall});
 
+  //<div>{{ console.log('datastate marketOverall:', data) }}</div>
   const containerTplMarketOverall = document.getElementById("marketOverall");
   const marketOverallTpl = `<div class="row g-3 mt-2 mb-3 d-flex justify-content-center">
   
 
-  <div>{{ console.log('datastate marketOverall:', data) }}</div>
+  <div></div>
   
     <div class="col-xl-4 col-sm-6 col-12">
       <div class="card shadow border-0">
@@ -995,19 +996,19 @@ const containerBotList = document.getElementById("botListTableBody");
         xybot.view.viewBotListData = Mikado(containerBotList, tplBotListHTMLC, {
           on: {
             create: function(node) {
-              console.log("viewBotListData - created:", node);
+              //console.log("viewBotListData - created:", node);
             },
             insert: function(node) {
-              console.log("viewBotListData - inserted:", node);
+              //console.log("viewBotListData - inserted:", node);
             },
             update: function(node) {
-              console.log("viewBotListData - updated:", node);
+              //console.log("viewBotListData - updated:", node);
             },
             change: function(node) {
-              console.log("viewBotListData - changed:", node);
+              //console.log("viewBotListData - changed:", node);
             },
             remove: function(node) {
-              console.log("viewBotListData - removed:", node);
+              //console.log("viewBotListData - removed:", node);
             },
             cache: false,
           }
@@ -2046,7 +2047,7 @@ if (marketIsChanged) {
  marketTrades is the tradehistory, array
 */
 xybot.marketTradesUpdate = function(marketTrades = []) {
-  //console.log('xybot.marketTradesUpdate: ', marketTrades);
+  console.log('xybot.marketTradesUpdate: ', marketTrades);
 
   if (xybot.current_market.market == '' || !xybot.current_market.market)
     return;
@@ -2060,7 +2061,7 @@ xybot.marketTradesUpdate = function(marketTrades = []) {
   if (totalTrades == 0)
     marketTrades = ych.data.trades[xybot.current_market.market];
 
-  //console.log('xybot.marketTradesUpdate render: ', marketTrades, 'total length: ', totalTrades);
+  console.log('xybot.marketTradesUpdate render: ', marketTrades, 'total length: ', totalTrades);
 
   let trades = [];
   let digits = market.digits == 0 ? 8 : market.digits;
@@ -2236,9 +2237,8 @@ function formatMarket(marketGroup, market, highestVolumeMarketOverall, lowestVol
   market.xy = {};
 
         // Set the market open/close status
-        market.xy.open = market.service
-          ? '<div class="badge bg-danger-lt" title="Market is Closed" data-bs-toggle="tooltip" data-bs-placement="top">Closed</div>'
-          : '<div class="badge bg-success-lt" title="Market is Open" data-bs-toggle="tooltip" data-bs-placement="top">Open</div>';
+        market.xy.open = xy_fn.getMarketStatusLabel(market, true); // returns the proper badge
+
 
         const asset = xybot.getAssetData(market.coina);
         const assetb = xybot.getAssetData(market.coinb);
@@ -2609,6 +2609,12 @@ function groupMarketsAndFindVolumeExtremes(conditionFn) {
         console.log('Coina:', tradeParts[0]); // Coina
         console.log('Coinb:', tradeParts[1]); // Coinb
 
+        const coina = tradeParts[0];
+        const coinb = tradeParts[1];
+        
+        $('#trade [data-market="coina"]').text(coina); 
+      	$('#trade [data-market="coinb"]').text(coinb); 
+        
         const tradingPair = tradeParam;
         const markets = xybot.vars.mikado.groupedMarketPairs.markets;
 
@@ -2630,6 +2636,14 @@ function groupMarketsAndFindVolumeExtremes(conditionFn) {
         //if marketPair is not found, re-direct to startPage
         if (isTradingPairFound) {
           console.log(`Trading pair ${tradingPair} found!`);
+          //$('.select-market').val(tradingPair).trigger('change');
+          ych.gui.current_market = tradingPair;
+          xybot.current_market.market = ych.gui.current_market;
+          xybot.current_market.coina = coina;
+          xybot.current_market.coinb = coinb;
+
+          xybot.part.orderbook.update();
+          xybot.marketTradesUpdate();
         } else {
           console.log(`Trading pair ${tradingPair} not found.`);
           Router.navigate('start');
@@ -3117,13 +3131,16 @@ function convertKeysToNumber(obj) {
 
   xybot.part.orderbook.update = function(orderType = 'both') {
 
+  	if(ych.gui.current_market == ''|| ych.gui.current_market=='')
+    	return;
 
-    if (!Router.urlParams)
+    /*if (!Router.urlParams)
       return;
     if (Router.urlParams.page !== 'bot' && Router.urlParams.page !== 'trade') {
       //console.log('dont update orderbook if page is not "bot" or "trade"'); //iceee commented out
       return;
     }
+    
 
     //console.log('xybot.part.orderbook.update Router.urlParams.page : ', Router.urlParams.page)
     const selectedMarket = document.querySelector('#' + Router.urlParams.page + ' select.select-market');
@@ -3133,13 +3150,18 @@ function convertKeysToNumber(obj) {
       // no selected market or dataset, do not render orderbook
       return;
     }
+    */
 
     //console.log('xybot.part.orderbook.update selectedMarket : ', selectedMarket)
     //console.log('xybot.part.orderbook.update selectedMarket.dataset : ', selectedMarket.dataset)
 
-    const marketPair = selectedMarket.dataset.marketPair;
+  	const coina = xybot.current_market.coina;
+  	const coinb = xybot.current_market.coinb;
 
-    const selected_market_pair = (marketPair).split('-');
+    const marketPair = coina+'-'+coinb;
+    //const selected_market_pair = (marketPair).split('-');
+    
+
 
     //Mikado update buy side of orderbook
 
@@ -3152,6 +3174,8 @@ function convertKeysToNumber(obj) {
       // Convert BigInt for amounta, amountb, price to Number()
       //let bidOrderBook = convertObjectValuesToNumber(ych.data.buys[marketPair], ['amounta', 'amountb', 'price']);
       let bidOrderBook = ych.data.buys[marketPair];
+
+      //console.log('bidOrderBook: ', bidOrderBook, marketPair);
       bidOrderBook = bidOrderBook.map(obj => convertObjectValuesToNumber(obj, ['amounta', 'amountb', 'price']));
 
       
@@ -3196,7 +3220,7 @@ function convertKeysToNumber(obj) {
 
 
       $('[data-market="buy_orders_total"]').text(totalBuyAmount.toFixed(8));
-      $('[data-balance="coina"]').html($(`[data-balance="${selected_market_pair[0]}"] [data-balance="free"]`).html());
+      $('[data-balance="coina"]').html($(`[data-balance="${coina}"] [data-balance="free"]`).html());
 
       //console.log('viewBidBook updatedOrders: ', updatedOrders);
       // Render the entire buy/bid order book
@@ -3255,7 +3279,7 @@ function convertKeysToNumber(obj) {
       sellEntryContainerUpdated.attr('data-rendered', true);
 
       $('[data-market="sell_orders_total"]').text(totalSellAmount.toFixed(8));
-      $('[data-balance="coinb"]').html($(`[data-balance="${selected_market_pair[1]}"] [data-balance="free"]`).html());
+      $('[data-balance="coinb"]').html($(`[data-balance="${coinb}"] [data-balance="free"]`).html());
     }
 
 
@@ -3410,10 +3434,13 @@ console.log('Spread Percentage:', spreadPercentage + '%');
 
     var selectedMarketPair = this.value;
     if (selectedMarketPair === "") {
-      xybot.current_market.market = '';
+      //xybot.current_market.market = '';
       return;
     }
 
+    /*if(ych.gui.current_market == ''|| ych.gui.current_market=='')
+    	return;
+    */
 
     const marketPairSplitted = selectedMarketPair.split('-');
     //buy and sell side data
@@ -3446,6 +3473,7 @@ console.log('Spread Percentage:', spreadPercentage + '%');
     //get the parent page of $this element
     // Find the parent element with the data attribute "data-page"
     const parentPageContainer = $(this).closest('[data-page]');
+    console.log('parentPageContainer: ', parentPageContainer);
     const pageName = parentPageContainer.data('page');
 
     console.log('parentPageContainer: ', parentPageContainer);
@@ -3453,8 +3481,16 @@ console.log('Spread Percentage:', spreadPercentage + '%');
     console.log(`Selected Market Pair: ${selectedMarketPair}`);
     console.log(`Page Name: ${pageName}`);
 
-    if (pageName === "bot" || pageName === "trade") {
+    if (pageName == "bot" || pageName == "trade") {
+
+    	
+
       xybot.part.orderbook.update();  //render orderbook in bot page
+      //render market trade history
+      
+      console.log('render market trade history: ');
+      xybot.marketTradesUpdate();
+
       console.log('update bot orderbook!');
 
       /*let buyFee = ych.data.coininfos[marketPairSplitted[1]].fee.buyfee*100;
@@ -3472,17 +3508,31 @@ console.log('Spread Percentage:', spreadPercentage + '%');
       let buyFee = (ych.data.coininfos[xybot.current_market.coinb].fee.buyfee * (100 - feeDiscount));
 			let sellFee = (ych.data.coininfos[xybot.current_market.coina].fee.sellfee * (100 - feeDiscount));
 
-
       
       $('[data-market-fee="coinb"]').text((buyFee).toFixed(3));
       $('[data-market-fee="coina"]').text((sellFee).toFixed(3));
 
       $('[data-market="name"]').text(xybot.current_market.coina+'/'+xybot.current_market.coinb);
 
-      const price = ych.data.markets[selectedMarketPair].price;
-      $('[data-market="price"]').val(parseFloat(price/1e8).toFixed(8));
+      let price = ych.data.markets[selectedMarketPair].price;
+      price = parseFloat(price/1e8);
+      $('[data-market="price"]').val(price.toFixed(8));
+      $('[data-market="price"]').text(price.toFixed(8));
+
+      $('#midPrice').val(price.toFixed(8)).trigger('change');
+      $("#setupTrendModal [data-market-name='market']").text(selectedMarketPair);
 
 
+			
+			  
+			  
+			  
+
+
+      
+	      xy_fn.setBotTradePricePushOptions(price);
+	      //xy_fn.setBotTradePriceOptions(price);
+	    
       //console.log('marketPairSplitted[0]: ' + marketPairSplitted[0])
       //console.log('marketPairSplitted[1]: ' + marketPairSplitted[1])
 
@@ -3508,8 +3558,8 @@ console.log('Spread Percentage:', spreadPercentage + '%');
           const percentageBalanceToUse = 0.05; //5% of balance to use for tradingbot
           const buyBalance = (Number(ych.data.profile.balances[marketPairSplitted[1]].free) / 1e8 * percentageBalanceToUse).toFixed(8);
           const sellBalance = (Number(ych.data.profile.balances[marketPairSplitted[0]].free) / 1e8 * percentageBalanceToUse).toFixed(8);
-          $('#tradingbot [data-bot="buyBalance"]').val(buyBalance);
-          $('#tradingbot [data-bot="sellBalance"]').val(sellBalance);
+          $('#setupTrendModal [data-bot="buyBalance"]').val(buyBalance);
+          $('#setupTrendModal [data-bot="sellBalance"]').val(sellBalance);
 
 
           var botBuySlider = document.getElementById('botBuyBalanceSlider');
@@ -3596,7 +3646,7 @@ console.log('Spread Percentage:', spreadPercentage + '%');
           });
            
 
-          var botBuyBalanceInput = document.querySelector('input[data-bot="buyBalance"]');
+          var botBuyBalanceInput = document.querySelector('#setupTrendModal input[data-bot="buyBalance"]');
             
           botBuySlider.noUiSlider.on('update', function (values, handle) {
               botBuyBalanceInput.value = values[handle];
@@ -3606,7 +3656,7 @@ console.log('Spread Percentage:', spreadPercentage + '%');
               botBuySlider.noUiSlider.set(this.value);
           });
 
-          var botSellBalanceInput = document.querySelector('input[data-bot="sellBalance"]');
+          var botSellBalanceInput = document.querySelector('#setupTrendModal input[data-bot="sellBalance"]');
             
           botSellSlider.noUiSlider.on('update', function (values, handle) {
               botSellBalanceInput.value = values[handle];
@@ -3622,8 +3672,7 @@ console.log('Spread Percentage:', spreadPercentage + '%');
       }
 
 
-      //render market trade history
-      xybot.marketTradesUpdate();
+      
 
     }
 
@@ -3668,25 +3717,29 @@ console.log('Spread Percentage:', spreadPercentage + '%');
     var marketOptions = '';
     var market_maintenance = '';
 
+    selectMarketEl.empty();
+
     for (var [market, pairs] of Object.entries(base_markets)) {
+		  marketOptions = '<optgroup label="' + market + ' Markets">';
 
-      marketOptions = '<optgroup label="' + market + ' Markets">';
+		  for (let i = 0; i < pairs.length; i++) {
+		    let pair = pairs[i];
+		    let marketInfo = ych.data.markets[pair];
+		    let statusLabel = xy_fn.getMarketStatusLabel(marketInfo); // not a badge
+		    
+		    marketOptions += '<option value="' + pair + '">' + pair + statusLabel + '</option>';
+		  }
 
-      for (let i = 0; i < pairs.length; i++) {
-        if (ych.data.markets[pairs[i]].service == true) //maintenance mode
-          market_maintenance = ' (maintenance)';
-        marketOptions += '<option value="' + pairs[i] + '">' + pairs[i] + market_maintenance + '</option>';
-        market_maintenance = '';
-      }
-      marketOptions += '</optgroup >';
-      
-      //append marketPairs to all "select-markets" element
-      selectMarketEl.each(function() {
-        $(this).append(marketOptions);
-      });
+		  marketOptions += '</optgroup>';
 
-      marketOptions = ''; //empty the options after each market base
-    }
+		  selectMarketEl.each(function () {
+		    $(this).append(marketOptions);
+		  });
+
+		  marketOptions = '';
+		}
+
+
 
 
     //var usdrate = ych.data.coininfos[selected_market_pair[0]].ext.priceext;
@@ -3791,11 +3844,13 @@ console.log('Spread Percentage:', spreadPercentage + '%');
           return;
         }
 
+        /*
         console.log("selected txouts:",
           txouts_selected,
           txouts_selected_freeb,
           txouts_selected_ordersb,
           txouts_selected_filledb);
+          */
 
         /*for (let i=0; i<txouts_selected.length; i++) {
           const txout = txouts_selected[i];

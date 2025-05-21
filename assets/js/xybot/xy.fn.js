@@ -32,6 +32,41 @@ let xy_fn = {};
 
 $(function() {
 
+xy_fn.getMarketStatusLabel = function(marketInfo, asBadge = false) {
+  if (marketInfo.service === true) {
+    return asBadge
+      ? '<div class="badge bg-warning-lt" title="Market is Under Maintenance" data-bs-toggle="tooltip" data-bs-placement="top">Maintenance</div>'
+      : ' (maintenance)';
+  } else if (marketInfo.open === false) {
+    return asBadge
+      ? '<div class="badge bg-danger-lt" title="Market is Closed" data-bs-toggle="tooltip" data-bs-placement="top">Closed</div>'
+      : ' (closed)';
+  } else {
+    return asBadge
+      ? '<div class="badge bg-success-lt" title="Market is Open" data-bs-toggle="tooltip" data-bs-placement="top">Open</div>'
+      : '';
+  }
+}
+
+
+  /**
+   * Helper function to get the default precision based on price
+   * 
+   * @param {number} price - Price to determine precision for
+   * @returns {number} Default precision for the given price
+   */
+  xy_fn.getDefaultPrecision = function(price) {
+    if (price >= 10000) return 3;
+    if (price >= 1000) return 3;
+    if (price >= 100) return 4;
+    if (price >= 10) return 4;
+    if (price >= 5) return 5;
+    if (price >= 1) return 6;
+    if (price >= 0.5) return 7;
+    if (price >= 0.1) return 8;
+    return 8;
+  }
+
 /**
  * Truncates a string by showing a specified number of characters at the beginning and end.
  *
@@ -367,7 +402,7 @@ $("body").on("click", "[data-bot-start]", function(e) {
       return;
 
     //check if market is selected
-    const tradingPair = $('#tradingbot select.select-market').attr('data-market-pair');
+    const tradingPair = $('#setupTrendModal select.select-market').attr('data-market-pair');
 
     if (tradingPair == '') {
     	iziToast.error({
@@ -401,10 +436,10 @@ $("body").on("click", "[data-bot-start]", function(e) {
 
 
 
-      //$('#tradingbot [data-bot="options"]').velocity('slideUp', { duration: 300 });
-      //$('#tradingbot [data-bot="options"]').velocity('slideUp').velocity("scroll", { duration: 500, easing: "spring" })
-      //show tradingbot active elements
-      //$('#tradingbot [data-bot="active"]').velocity('slideDown', { duration: 300 });
+      //$('#setupTrendModal [data-bot="options"]').velocity('slideUp', { duration: 300 });
+      //$('#setupTrendModal [data-bot="options"]').velocity('slideUp').velocity("scroll", { duration: 500, easing: "spring" })
+      //show setupTrendModal active elements
+      //$('#setupTrendModal [data-bot="active"]').velocity('slideDown', { duration: 300 });
 
       //get form configuration for bot
       const OrderType = $(botOrderType).filter(':checked').val();
@@ -412,52 +447,64 @@ $("body").on("click", "[data-bot-start]", function(e) {
 
       
 
-      //const tradingPair = $('#tradingbot select.select-market').attr('data-market-pair');
-      let maxOpenBidOrders = $('#tradingbot input[data-bot="maxOpenBidOrders"]').val();
+      //const tradingPair = $('#setupTrendModal select.select-market').attr('data-market-pair');
+      let maxOpenBidOrders = $('#setupTrendModal input[data-bot="maxOpenBidOrders"]').val();
       maxOpenBidOrders = parseInt(maxOpenBidOrders);
-      let maxOpenAskOrders = $('#tradingbot input[data-bot="maxOpenAskOrders"]').val();
+      let maxOpenAskOrders = $('#setupTrendModal input[data-bot="maxOpenAskOrders"]').val();
       maxOpenAskOrders = parseInt(maxOpenAskOrders);
-      const minOrderCost = $('#tradingbot input[data-bot="minOrderCost"]').val();
-      const maxOrderCost = $('#tradingbot input[data-bot="maxOrderCost"]').val();
-      const buyBalance = $('#tradingbot input[data-bot="buyBalance"]').val();
-      const sellBalance = $('#tradingbot input[data-bot="sellBalance"]').val();
-      const minRandomTradeTime = $('#tradingbot input[data-bot="minRandomTradeTime"]').val();
-      const maxRandomTradeTime = $('#tradingbot input[data-bot="maxRandomTradeTime"]').val();
+      const minOrderCost = $('#setupTrendModal input[data-bot="minOrderCost"]').val();
+      const maxOrderCost = $('#setupTrendModal input[data-bot="maxOrderCost"]').val();
+      const buyBalance = $('#setupTrendModal input[data-bot="buyBalance"]').val();
+      const sellBalance = $('#setupTrendModal input[data-bot="sellBalance"]').val();
+      const minRandomTradeTime = $('#setupTrendModal input[data-bot="minRandomTradeTime"]').val();
+      const maxRandomTradeTime = $('#setupTrendModal input[data-bot="maxRandomTradeTime"]').val();
 
-      const useLiqudity = $('#tradingbot input[data-bot="useLiquidity"]').prop('checked');
+      //const useLiqudity = $('#setupTrendModal input[data-bot="useLiquidity"]').prop('checked');
+      const useLiqudity = true;
 
       //get Price Action Settings
         //Bid settings
-      let bidPriceAction = $('#tradingbot input:radio[name="botBidPriceAction-radio"]:checked').val();
-      const bidRandomMinPrice = $('#tradingbot input[data-bot="minRandomTradeBidPrice"]').val();
-      const bidRandomMaxPrice = $('#tradingbot input[data-bot="maxRandomTradeBidPrice"]').val();
-      const bidRandomMinQty = $('#tradingbot input[data-bot="minRandomTradeBidQty"]').val();
-      const bidRandomMaxQty = $('#tradingbot input[data-bot="maxRandomTradeBidQty"]').val();
+      //let bidPriceAction = $('#setupTrendModal input:radio[name="botBidPriceAction-radio"]:checked').val();
+      let bidPriceAction = $('#setupTrendModal #bidTrend').val();
+      const bidRandomMinPrice = $('#setupTrendModal input[data-bot="minRandomTradeBidPrice"]').val();
+      const bidRandomMaxPrice = $('#setupTrendModal input[data-bot="maxRandomTradeBidPrice"]').val();
+      const bidRandomMinQty = $('#setupTrendModal input[data-bot="minRandomTradeBidQty"]').val();
+      const bidRandomMaxQty = $('#setupTrendModal input[data-bot="maxRandomTradeBidQty"]').val();
         // Set priceAction to none if it doesn't contain none, above, or below
-      bidPriceAction = ['none', 'above', 'below'].includes(bidPriceAction) ? bidPriceAction : 'none';
+      //bidPriceAction = ['none', 'above', 'below'].includes(bidPriceAction) ? bidPriceAction : 'none';
+      //bidPriceAction = ['none', 'above', 'below'].includes(bidPriceAction) ? bidPriceAction : 'none';
 
 
         //ask settings
-      let askPriceAction = $('#tradingbot input:radio[name="botAskPriceAction-radio"]:checked').val();
-      const askRandomMinPrice = $('#tradingbot input[data-bot="minRandomTradeAskPrice"]').val();
-      const askRandomMaxPrice = $('#tradingbot input[data-bot="maxRandomTradeAskPrice"]').val();
-      const askRandomMinQty = $('#tradingbot input[data-bot="minRandomTradeAskQty"]').val();
-      const askRandomMaxQty = $('#tradingbot input[data-bot="maxRandomTradeAskQty"]').val();
+      //let askPriceAction = $('#setupTrendModal input:radio[name="botAskPriceAction-radio"]:checked').val();
+      let askPriceAction = $('#setupTrendModal #askTrend').val();
+
+      const askRandomMinPrice = $('#setupTrendModal input[data-bot="minRandomTradeAskPrice"]').val();
+      const askRandomMaxPrice = $('#setupTrendModal input[data-bot="maxRandomTradeAskPrice"]').val();
+      const askRandomMinQty = $('#setupTrendModal input[data-bot="minRandomTradeAskQty"]').val();
+      const askRandomMaxQty = $('#setupTrendModal input[data-bot="maxRandomTradeAskQty"]').val();
         // Set priceAction to none if it doesn't contain none, above, or below
-      askPriceAction = ['none', 'above', 'below'].includes(askPriceAction) ? askPriceAction : 'none';
+      //askPriceAction = ['none', 'above', 'below'].includes(askPriceAction) ? askPriceAction : 'none';
 
 
+      //Overall Market settings
+      let marketPriceAction = $('#setupTrendModal #marketTrend').val();
+      let marketTrendAdjustmentAction = $('#setupTrendModal #trendAdjustment').val();
+
+      let marketSpreadAction = $('#setupTrendModal #spreadPercentage').val();
+      let marketSpreadBiasAction = $('#setupTrendModal #spreadBiasPercentage').val();
+      	
       // Define the mapping for the checked values of cancelOrdersonStop
       const cancelOrdersonStopMapping = {
         'both': {
           cancelBuyOrders: true,
           cancelSellOrders: true
         },
-        'sell': {
+        'ask': {
           cancelBuyOrders: false,
           cancelSellOrders: true
         },
-        'buy': {
+        'bid': {
           cancelBuyOrders: true,
           cancelSellOrders: false
         },
@@ -466,7 +513,8 @@ $("body").on("click", "[data-bot-start]", function(e) {
           cancelSellOrders: false
         },
       };
-      const cancelOrdersonStopValue = $('#tradingbot input:radio[name="botcancelOrdersonStop-radio"]:checked').val();
+
+      const cancelOrdersonStopValue = $('#setupTrendModal #cancelOnStop').val();
       // Create the cancelOrdersOnStop object using the mapping
       const cancelOrdersOnStop = cancelOrdersonStopMapping[cancelOrdersonStopValue];
 
@@ -532,7 +580,7 @@ $('#tradingbot #intervalPeriod .row').each(function() {
 */
       //Calulate end-time depeding on bot duration (in minutes)
       let intervalPeriods = [];
-			var botDuration = parseInt($('#tradingbot #bot-time-duration').val(), 10);
+			var botDuration = parseInt($('#setupTrendModal #runtTime').val(), 10);
 			var currentDate = new Date();
 
 			var startYear = currentDate.getFullYear();
@@ -559,8 +607,6 @@ $('#tradingbot #intervalPeriod .row').each(function() {
 			    'start': startDate,
 			    'end': endDate
 			});
-
-
 
       console.log('intervalPeriods: ', intervalPeriods)
       console.log('maxOpenBidOrders: ', maxOpenBidOrders);
@@ -591,24 +637,31 @@ $('#tradingbot #intervalPeriod .row').each(function() {
         },
         'cancelOrdersOnStop': cancelOrdersOnStop,
         'orderType': OrderType,
+        // Overall market price action settings
+        'marketSettings': {
+        	'trend': marketPriceAction,
+        	'trendAdjustment': parseFloat(marketTrendAdjustmentAction),
+        	'spread': parseFloat(marketSpreadAction),
+        	'spreadBias': parseFloat(marketSpreadBiasAction)
+        },
         // Bid price action settings
         'bidSettings': {
           'action': {
             'trend': bidPriceAction,
-            'minPrice': bidRandomMinPrice,
-            'maxPrice': bidRandomMaxPrice,
-            'minQty': bidRandomMinQty,
-            'maxQty': bidRandomMaxQty
+            'minPrice': parseFloat(bidRandomMinPrice),
+            'maxPrice': parseFloat(bidRandomMaxPrice),
+            'minQty': parseFloat(bidRandomMinQty),
+            'maxQty': parseFloat(bidRandomMaxQty)
           },
         },
         // Ask price action settings
         'askSettings': {
           'action': {
             'trend': askPriceAction,
-            'minPrice': askRandomMinPrice,
-            'maxPrice': askRandomMaxPrice,
-            'minQty': askRandomMinQty,
-            'maxQty': askRandomMaxQty
+            'minPrice': parseFloat(askRandomMinPrice),
+            'maxPrice': parseFloat(askRandomMaxPrice),
+            'minQty': parseFloat(askRandomMinQty),
+            'maxQty': parseFloat(askRandomMaxQty)
           },
         }
 
@@ -1649,6 +1702,72 @@ $('.flex-table-checkbox').on('change', '.flex-table .js-check-all, input[type="c
 
   
 
+xy_fn.setBotTradePricePushOptions = function(price) {
+      //update price precision for inputs
+      const priceDecimals = xy_fn.getDefaultPrecision(price);
+      // Build the step/min value as a string like "0.001" depending on the number of decimals
+			let decimalValue = (1 / Math.pow(10, priceDecimals)).toFixed(priceDecimals);
+
+			// Update the bid/ask min-max push prices
+			let maxValue = (decimalValue * 10).toFixed(priceDecimals); // tweak multiplier if needed
+			//maxValue = parseFloat(maxValue);
+			//decimalValue = parseFloat(decimalValue);
+
+			console.log('decimalValue price: ', price);
+			console.log('decimalValue priceDecimals: ', priceDecimals);
+			console.log('decimalValue: ', decimalValue);
+			console.log('decimalValue maxValue: ', maxValue);
+
+
+			// Set min inputs
+			['#bidMinPushPrice', '#askMinPushPrice'].forEach(id => {
+			  $(id)
+			    .attr('min', decimalValue)
+			    .attr('step', decimalValue)
+			    .val(decimalValue);
+			});
+			// Set max inputs
+			['#bidMaxPushPrice', '#askMaxPushPrice'].forEach(id => {
+			  $(id)
+			    .attr('min', decimalValue)
+			    .attr('step', decimalValue)
+			    .val(maxValue);
+			});
+
+}
+
+//Iceeeeeeeeeeeeee removeeeeeeee
+xy_fn.setBotTradePriceOptions = function(price) {
+    let minIncrease, maxIncrease;
+
+    price = price / 1e8;
+    if (price < 0.00000100) { // Less than 100 satoshis
+        minIncrease = 1; // 1 satoshi
+        maxIncrease = 5; // 5 satoshis
+    } else if (price < 0.01) { // Below 0.01 BTC
+        minIncrease = price * 0.0005; // 0.05% increase
+        maxIncrease = price * 0.002;  // 0.2% increase
+    } else if (price < 1000) { // Below $1000
+        minIncrease = price * 0.0001; // 0.01% increase
+        maxIncrease = price * 0.005;  // 0.5% increase
+    } else if (price < 5000) { // Below $1000
+        minIncrease = 0.5; // Min $0.5 step
+        maxIncrease = 5;  // Max $10 step
+    } else { // BTC or other high-value coins
+        minIncrease = 1; // Min $0.5 step
+        maxIncrease = 10;  // Max $10 step
+    }
+
+    // Update input fields
+    $('[data-bot="minRandomTradeBidPrice"]').val(( minIncrease).toFixed(8));
+    $('[data-bot="maxRandomTradeBidPrice"]').val(( maxIncrease).toFixed(8));
+
+    $('[data-bot="minRandomTradeAskPrice"]').val(( minIncrease).toFixed(8));
+    $('[data-bot="maxRandomTradeAskPrice"]').val(( maxIncrease).toFixed(8));
+}
+// xy_fn.setBotTradePriceOptions(coinPrice);
+
+
 
 //bid Trend config info
 botBidPriceAction.on('change', function() {
@@ -1662,9 +1781,9 @@ $('#tradingbot input[data-bot="minRandomTradeBidPrice"], ' +
     console.log('===bidSettings changed');
 
     // Get the values of min and max price and min and max quantity
-    let minPrice = parseFloat($('#tradingbot input[data-bot="minRandomTradeBidPrice"]').val()) / 1e8;
+    let minPrice = parseFloat($('#tradingbot input[data-bot="minRandomTradeBidPrice"]').val());
+    let maxPrice = parseFloat($('#tradingbot input[data-bot="maxRandomTradeBidPrice"]').val());
 
-    let maxPrice = parseFloat($('#tradingbot input[data-bot="maxRandomTradeBidPrice"]').val()) / 1e8;
     let minQty = parseFloat($('#tradingbot input[data-bot="minRandomTradeBidQty"]').val());
     let maxQty = parseFloat($('#tradingbot input[data-bot="maxRandomTradeBidQty"]').val());
 
@@ -1673,6 +1792,11 @@ $('#tradingbot input[data-bot="minRandomTradeBidPrice"], ' +
     
         //get marketprice 
     const market = $('#tradingbot select[data-bot="tradingPair"]').attr('data-market-pair');
+    if (!market || ych?.data?.buys?.[market]?.[0] === undefined) {
+			return;
+		}
+
+    console.log('market pair attr: ', market);
     let bidPrice = Number(ych.data.buys[market][0].price) / 1e8;
     
     // Price trend Action
@@ -1693,8 +1817,8 @@ $('#tradingbot input[data-bot="minRandomTradeBidPrice"], ' +
     let randomQty = Math.random() * (maxQty - minQty) + minQty;
     
     // Calculate min cost, max cost, and average cost
-    let minCost = minPrice * minQty;
-    let maxCost = maxPrice * maxQty;
+    let minCost = (minPrice) * minQty;
+    let maxCost = (maxPrice) * maxQty;
     let averageCost = (maxCost + minCost) / 2;
     //let averageCost = randomPrice * randomQty;
     
@@ -1726,8 +1850,9 @@ $('#tradingbot input[data-bot="minRandomTradeAskPrice"], ' +
     console.log('===askSettings changed');
 
     // Get the values of min and max price and min and max quantity
-    let minPrice = parseFloat($('#tradingbot input[data-bot="minRandomTradeAskPrice"]').val()) / 1e8;
-    let maxPrice = parseFloat($('#tradingbot input[data-bot="maxRandomTradeAskPrice"]').val()) / 1e8;
+    let minPrice = parseFloat($('#tradingbot input[data-bot="minRandomTradeAskPrice"]').val());
+    let maxPrice = parseFloat($('#tradingbot input[data-bot="maxRandomTradeAskPrice"]').val());
+
     let minQty = parseFloat($('#tradingbot input[data-bot="minRandomTradeAskQty"]').val());
     let maxQty = parseFloat($('#tradingbot input[data-bot="maxRandomTradeAskQty"]').val());
     
@@ -1737,6 +1862,10 @@ $('#tradingbot input[data-bot="minRandomTradeAskPrice"], ' +
 
     //get marketprice 
     const market = $('#tradingbot select[data-bot="tradingPair"]').attr('data-market-pair');
+    if (!market || ych?.data?.buys?.[market]?.[0] === undefined) {
+			return;
+		}
+
     let askPrice = Number(ych.data.sells[market][0].price) / 1e8;
     // Price trend Action
     if (priceAction == 'above')  {  //push price up
@@ -1753,20 +1882,10 @@ $('#tradingbot input[data-bot="minRandomTradeAskPrice"], ' +
     // Calculate min cost, max cost, and average cost
     let minCost = minPrice * minQty;
     let maxCost = maxPrice * maxQty;
+
+
     //let averageCost;
     let averageCost = (maxCost + minCost) / 2;
-    /*
-    // Calculate cost for various combinations and collect them in an array
-    const costs = [];
-    for (let i = 0; i < 100; i++) { // Generate 1000 samples
-      // Generate random numbers between min and max price and quantity
-      let randomPrice = Math.random() * (maxPrice - minPrice) + minPrice;
-      let randomQty = Math.random() * (maxQty - minQty) + minQty;
-      averageCost = randomPrice * randomQty;
-      costs.push(averageCost);
-    }
-    averageCost = costs.reduce((acc, curr) => acc + curr, 0) / costs.length;
-    */
     
     // Output or use the calculated values as needed
     console.log("Ask Min Price:", minPrice.toFixed(8));
@@ -1803,3 +1922,476 @@ $('#tradingbot input[data-bot="minRandomTradeAskPrice"], ' +
     //xy_fn.JBoxDialog.setContent('Kalle');
 
 });
+
+
+
+
+	const cryptoTradingRules = new CryptoTradingRules();
+
+// Format price with appropriate precision
+    function formatPriceForMarket(price, decimals = null) {
+      if (decimals === null) {
+        // Auto-detect decimals based on price magnitude
+        if (price >= 10000) {
+          decimals = 1;
+        } else if (price >= 1000) {
+          decimals = 2;
+        } else if (price >= 100) {
+          decimals = 3;
+        } else if (price >= 10) {
+          decimals = 4;
+        } else if (price >= 1) {
+          decimals = 5;
+        } else if (price >= 0.1) {
+          decimals = 6;
+        } else {
+          decimals = 8;
+        }
+      }
+      return parseFloat(price).toFixed(decimals);
+    }
+    // Adjusts price based on extended market trend categories
+    function adjustPriceForTrend(price, trend, adjustmentFactor = 0.2) {
+      // Upward price trends (increasing strength)
+      switch (trend) {
+        // Original upward trends
+        case 'above':
+          return price * (1 + adjustmentFactor / 100);
+        case 'strong_above':
+          return price * (1 + (adjustmentFactor * 2) / 100);
+          // New upward trends with increasing intensity
+        case 'rising':
+          return price * (1 + (adjustmentFactor * 1.5) / 100);
+        case 'surging':
+          return price * (1 + (adjustmentFactor * 2.5) / 100);
+        case 'breakout':
+          return price * (1 + (adjustmentFactor * 3) / 100);
+        case 'extreme_bullish':
+          return price * (1 + (adjustmentFactor * 4) / 100);
+          // Original downward trends
+        case 'below':
+          return price * (1 - adjustmentFactor / 100);
+        case 'strong_below':
+          return price * (1 - (adjustmentFactor * 2) / 100);
+          // New downward trends with increasing intensity
+        case 'falling':
+          return price * (1 - (adjustmentFactor * 1.5) / 100);
+        case 'dropping':
+          return price * (1 - (adjustmentFactor * 2.5) / 100);
+        case 'breakdown':
+          return price * (1 - (adjustmentFactor * 3) / 100);
+        case 'extreme_bearish':
+          return price * (1 - (adjustmentFactor * 4) / 100);
+        case 'neutral':
+        default:
+          return price;
+      }
+    }
+    // Calculate bid and ask prices for market making with enhanced trend support
+    function calculateBidAskPrices(midPrice, options = {}) {
+      const {
+        spreadPercentage = 0.5,
+          marketTrend = 'neutral',
+          bidTrend = 'neutral',
+          askTrend = 'neutral',
+          trendAdjustment = 0.2,
+          spreadBiasPercentage = 30,
+          decimals = null
+      } = options;
+      // Calculate half spread
+      const halfSpreadBase = spreadPercentage / 200;
+      // Adjust spread bias based on market trend
+      let bidSpreadMultiplier = 1;
+      let askSpreadMultiplier = 1;
+      // Apply spread bias based on market trend (0-100%)
+      const biasAmount = spreadBiasPercentage / 100;
+      // Enhanced market trend handling
+      switch (marketTrend) {
+        // Original trends
+        case 'bullish':
+          bidSpreadMultiplier = 1 - (biasAmount * 0.5);
+          askSpreadMultiplier = 1 + (biasAmount * 0.5);
+          break;
+        case 'bearish':
+          bidSpreadMultiplier = 1 + (biasAmount * 0.5);
+          askSpreadMultiplier = 1 - (biasAmount * 0.5);
+          break;
+        case 'strong_bullish':
+          bidSpreadMultiplier = 1 - biasAmount;
+          askSpreadMultiplier = 1 + biasAmount;
+          break;
+        case 'strong_bearish':
+          bidSpreadMultiplier = 1 + biasAmount;
+          askSpreadMultiplier = 1 - biasAmount;
+          break;
+          // New bullish trend levels
+        case 'rising_bullish':
+          bidSpreadMultiplier = 1 - (biasAmount * 0.7);
+          askSpreadMultiplier = 1 + (biasAmount * 0.7);
+          break;
+        case 'surging_bullish':
+          bidSpreadMultiplier = 1 - (biasAmount * 1.2);
+          askSpreadMultiplier = 1 + (biasAmount * 1.2);
+          break;
+        case 'breakout_bullish':
+          bidSpreadMultiplier = 1 - (biasAmount * 1.5);
+          askSpreadMultiplier = 1 + (biasAmount * 1.5);
+          break;
+        case 'extreme_bullish':
+          bidSpreadMultiplier = 1 - (biasAmount * 2);
+          askSpreadMultiplier = 1 + (biasAmount * 2);
+          break;
+          // New bearish trend levels
+        case 'falling_bearish':
+          bidSpreadMultiplier = 1 + (biasAmount * 0.7);
+          askSpreadMultiplier = 1 - (biasAmount * 0.7);
+          break;
+        case 'dropping_bearish':
+          bidSpreadMultiplier = 1 + (biasAmount * 1.2);
+          askSpreadMultiplier = 1 - (biasAmount * 1.2);
+          break;
+        case 'breakdown_bearish':
+          bidSpreadMultiplier = 1 + (biasAmount * 1.5);
+          askSpreadMultiplier = 1 - (biasAmount * 1.5);
+          break;
+        case 'extreme_bearish':
+          bidSpreadMultiplier = 1 + (biasAmount * 2);
+          askSpreadMultiplier = 1 - (biasAmount * 2);
+          break;
+        case 'neutral':
+        default:
+          // Keep the spread balanced
+          break;
+      }
+      // Apply adjusted spread multipliers
+      const bidHalfSpread = halfSpreadBase * bidSpreadMultiplier;
+      const askHalfSpread = halfSpreadBase * askSpreadMultiplier;
+      // Calculate base bid and ask with adjusted spread
+      let bidPrice = midPrice * (1 - bidHalfSpread);
+      let askPrice = midPrice * (1 + askHalfSpread);
+      // Apply additional trend adjustments for fine-tuning
+      bidPrice = adjustPriceForTrend(bidPrice, bidTrend, trendAdjustment);
+      askPrice = adjustPriceForTrend(askPrice, askTrend, trendAdjustment);
+      // Calculate actual spread and percentage after all adjustments
+      const finalSpread = askPrice - bidPrice;
+      const finalSpreadPercentage = (finalSpread / midPrice) * 100;
+      // Format to appropriate precision
+      return {
+        bidPrice: formatPriceForMarket(bidPrice, decimals),
+        askPrice: formatPriceForMarket(askPrice, decimals),
+        spread: formatPriceForMarket(finalSpread, decimals),
+        spreadPercentage: formatPriceForMarket(finalSpreadPercentage, 2),
+        spreadBias: marketTrend !== 'neutral' ? marketTrend : 'none'
+      };
+    }
+    // Store frequently used DOM elements as constants
+    const $botElements = {
+      marketTrend: $('#marketTrend'),
+      bidTrend: $('#bidTrend'),
+      askTrend: $('#askTrend'),
+      
+      
+      bidMinPushPrice: $('#bidMinPushPrice'),
+      bidMaxPushPrice: $('#bidMaxPushPrice'),
+
+      askMinPushPrice: $('#askMinPushPrice'),
+      askMaxPushPrice: $('#askMaxPushPrice'),
+
+      spreadBiasPercentage: $('#spreadBiasPercentage'),
+      trendAdjustment: $('#trendAdjustment'),
+      midPrice: $('#midPrice'),
+      spreadPercentage: $('#spreadPercentage'),
+      resultBid: $('#result-bid'),
+      resultAsk: $('#result-ask'),
+      resultSpread: $('#result-spread'),
+      resultSpreadPercentage: $('#result-spread-percentage'),
+      biasValue: $('#biasValue')
+    };
+    // Update results based on form inputs
+    function updateResults() {
+      const params = {
+        midPrice: parseFloat($botElements.midPrice.val()),
+        spreadPercentage: parseFloat($botElements.spreadPercentage.val()),
+        trendAdjustment: parseFloat($botElements.trendAdjustment.val()),
+
+        bidMinPushPrice: parseFloat($botElements.bidMinPushPrice.val()),
+        bidMaxPushPrice: parseFloat($botElements.bidMaxPushPrice.val()),
+        askMinPushPrice: parseFloat($botElements.askMinPushPrice.val()),
+        askMaxPushPrice: parseFloat($botElements.askMaxPushPrice.val()),
+
+        spreadBiasPercentage: parseFloat($botElements.spreadBiasPercentage.val()),
+        marketTrend: $botElements.marketTrend.val(),
+        bidTrend: $botElements.bidTrend.val(),
+        askTrend: $botElements.askTrend.val()
+      };
+      var results = cryptoTradingRules.generateMarketMakingRules(params.midPrice, {
+		    spreadPercentage: params.spreadPercentage,
+		    trendAdjustment: params.trendAdjustment,
+		    spreadBiasPercentage: params.spreadBiasPercentage,
+
+		    minBidPushAmount: params.bidTrend === 'neutral' ? params.bidMinPushPrice : null,
+		    maxBidPushAmount: params.bidTrend === 'neutral' ? params.bidMaxPushPrice : null,
+
+		    minAskPushAmount: params.askTrend === 'neutral' ? params.askMinPushPrice : null,
+		    maxAskPushAmount: params.askTrend === 'neutral' ? params.askMaxPushPrice : null,
+
+		    /*minBidPushAmount: params.bidMinPushPrice,
+		    maxBidPushAmount: params.bidMaxPushPrice,
+		    minAskPushAmount: params.askMinPushPrice,
+		    maxAskPushAmount: params.askMaxPushPrice,
+		    */
+		    marketTrend: params.marketTrend,
+		    bidTrend: params.bidTrend,
+		    askTrend: params.askTrend,
+		    decimals: cryptoTradingRules.getDefaultPrecision(params.midPrice),
+		    bidTicks: 1,
+		    askTicks: 1,
+		    //decimals: 6
+		    
+		  });
+
+      /*
+      const results = cryptoTradingRules.calculateBidAskPrices(params.midPrice, {
+        spreadPercentage: params.spreadPercentage,
+        marketTrend: params.marketTrend,
+        bidTrend: params.bidTrend,
+        askTrend: params.askTrend,
+        trendAdjustment: params.trendAdjustment,
+        spreadBiasPercentage: params.spreadBiasPercentage
+      });
+
+      //$botElements.resultBid.text(results.bidPrice);
+      //$botElements.resultAsk.text(results.askPrice);
+      */
+
+      console.log('results: ', results);
+      
+      const effectiveBidPrice = results.bidTickPrices[0] ?? results.bidPrice;
+			const effectiveAskPrice = results.askTickPrices[0] ?? results.askPrice;
+      
+
+      
+      $botElements.resultBid.text(effectiveBidPrice.toFixed(8));
+      $botElements.resultAsk.text(effectiveAskPrice);
+
+      $botElements.resultSpread.text((results.spread).toFixed(8));
+      $botElements.resultSpreadPercentage.text(results.spreadPercentage + '%');
+    }
+
+    function loadTrendOptions() {
+      const trendOptions = {
+        neutral: [{
+          value: 'neutral',
+          text: 'Neutral',
+          type: 'neutral'
+        }],
+        upward: [{
+            value: 'above',
+            text: 'Above',
+            type: 'bullish'
+          },
+          {
+            value: 'rising',
+            text: 'Rising',
+            type: 'bullish'
+          },
+          {
+            value: 'strong_above',
+            text: 'Strong Above',
+            type: 'bullish'
+          },
+          {
+            value: 'surging',
+            text: 'Surging',
+            type: 'bullish'
+          },
+          {
+            value: 'breakout',
+            text: 'Breakout',
+            type: 'bullish'
+          },
+          {
+            value: 'extreme_bullish',
+            text: 'Extreme Bullish',
+            type: 'bullish'
+          }
+        ],
+        downward: [{
+            value: 'below',
+            text: 'Below',
+            type: 'bearish'
+          },
+          {
+            value: 'falling',
+            text: 'Falling',
+            type: 'bearish'
+          },
+          {
+            value: 'strong_below',
+            text: 'Strong Below',
+            type: 'bearish'
+          },
+          {
+            value: 'dropping',
+            text: 'Dropping',
+            type: 'bearish'
+          },
+          {
+            value: 'breakdown',
+            text: 'Breakdown',
+            type: 'bearish'
+          },
+          {
+            value: 'extreme_bearish',
+            text: 'Extreme Bearish',
+            type: 'bearish'
+          }
+        ]
+      };
+      // Helper function to populate select element
+      function populateSelect($select) {
+        $select.empty();
+        // Add neutral options directly
+        trendOptions.neutral.forEach(option => {
+          $select.append(createOption(option));
+        });
+        // Add grouped bullish options
+        $select.append(createOptgroup('Bullish', trendOptions.upward));
+        // Add grouped bearish options
+        $select.append(createOptgroup('Bearish', trendOptions.downward));
+        // Set default to neutral
+        $select.val('neutral');
+      }
+      // Helper function to create option element
+      function createOption(option) {
+        return $('<option>', {
+          value: option.value,
+          text: option.text,
+          class: option.type
+        });
+      }
+      // Helper function to create optgroup
+      function createOptgroup(label, options) {
+        const optgroup = $('<optgroup>', {
+          label
+        });
+        options.forEach(option => {
+          optgroup.append(createOption(option));
+        });
+        return optgroup;
+      }
+      // Populate both trend selects
+      populateSelect($botElements.bidTrend);
+      populateSelect($botElements.askTrend);
+    }
+    // Update trend border color
+    function updateTrendBorder($select) {
+      const selectedOption = $select.find('option:selected');
+      // Remove all border classes
+      $select.removeClass('bullish-border bearish-border neutral-border');
+      // Add appropriate border class based on selected option
+      if (selectedOption.hasClass('bullish')) {
+        $select.addClass('bullish-border');
+      } else if (selectedOption.hasClass('bearish')) {
+        $select.addClass('bearish-border');
+      } else {
+        $select.addClass('neutral-border');
+      }
+    }
+    // Update trend-related UI elements
+    function updateTrendUI() {
+      // Update market trend dependencies
+      const marketTrendVal = $botElements.marketTrend.val();
+      $botElements.spreadBiasPercentage.prop('disabled', marketTrendVal === 'neutral');
+
+
+      // Check both bid and ask trends together
+      // Disable Trend instensity if not set 
+      const bidTrendVal = $botElements.bidTrend.val();
+      const askTrendVal = $botElements.askTrend.val();
+      const bothTrendsNeutral = bidTrendVal === 'neutral' && askTrendVal === 'neutral';
+      $botElements.trendAdjustment.prop('disabled', bothTrendsNeutral);
+
+
+      //disable push min/max price depending on trend value
+			$botElements.bidMinPushPrice.prop('disabled', bidTrendVal !== 'neutral');
+			$botElements.bidMaxPushPrice.prop('disabled', bidTrendVal !== 'neutral');
+
+			$botElements.askMinPushPrice.prop('disabled', askTrendVal !== 'neutral');
+			$botElements.askMaxPushPrice.prop('disabled', askTrendVal !== 'neutral');
+
+
+
+      // Update all trend border colors
+      updateTrendBorder($botElements.marketTrend);
+      updateTrendBorder($botElements.bidTrend);
+      updateTrendBorder($botElements.askTrend);
+    }
+    // Initialize and setup event handlers
+    $(document).ready(function() {
+      // Load trend options
+      loadTrendOptions();
+      // Initialize UI state
+      updateTrendUI();
+      updateResults();
+      // Setup event handlers for all form inputs
+      $('#setupForm input, #setupForm select, #advanced input, #advanced select')
+        .on('change', updateResults);
+      // Setup event handlers for text/number inputs
+      $botElements.midPrice.add($botElements.spreadPercentage)
+        .add($botElements.trendAdjustment).add($botElements.spreadBiasPercentage)
+        .on('input', updateResults);
+      // Setup trend-related event handlers
+      $botElements.marketTrend.add($botElements.bidTrend).add($botElements.askTrend).add($botElements.marketTrend)
+        .on('change', function() {
+          updateTrendUI();
+          updateResults();
+        });
+      
+      // Spread bias range slider
+      $botElements.spreadBiasPercentage.on('input', function() {
+        $botElements.biasValue.text($(this).val() + '%');
+      });
+      
+      // Handle apply button
+      $('#createBotSetup').on('click', function() {
+        // Get form values
+        const params = {
+          midPrice: parseFloat($botElements.midPrice.val()),
+          spreadPercentage: parseFloat($botElements.spreadPercentage.val()),
+          trendAdjustment: parseFloat($botElements.trendAdjustment.val()),
+          spreadBiasPercentage: parseFloat($botElements.spreadBiasPercentage.val()),
+          marketTrend: $botElements.marketTrend.val(),
+          bidTrend: $botElements.bidTrend.val(),
+          askTrend: $botElements.askTrend.val()
+        };
+        // Calculate results
+        const results = cryptoTradingRules.calculateBidAskPrices(params.midPrice, {
+          spreadPercentage: params.spreadPercentage,
+          marketTrend: params.marketTrend,
+          bidTrend: params.bidTrend,
+          askTrend: params.askTrend,
+          trendAdjustment: params.trendAdjustment,
+          spreadBiasPercentage: params.spreadBiasPercentage
+        });
+        // const decimals = formatPriceForMarket;
+        // Log the setup
+        console.log('Applied setup:', {
+          ...params,
+          results
+        });
+        // Show success message
+        alert('Bot Trading setup applied successfully!');
+        // Close modal
+        $('#setupTrendModal').modal('hide');
+
+
+		  	$('#botButton').click();
+
+      });
+      
+      $('#setupTrendModal').on('show.bs.modal', function (e) {
+      	$('#tradingbot .select-market').trigger('change');
+      });
+
+    });

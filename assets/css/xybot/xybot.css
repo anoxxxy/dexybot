@@ -2108,7 +2108,7 @@ order-top: none;
 }
 
 #trade .element {
-  min-width: 100px;
+  /*min-width: 100px;*/
 }
 
 #trade .content-trade {
@@ -2135,15 +2135,16 @@ order-top: none;
 
 
 #trade .a {
-  flex: 1 40%;
+  flex: 1 30%;
 }
 
 #trade .b {
   flex: 1 60%;
+  top: 0;
 }
 
 #trade .structure-1-2-1 {
-  flex: 1 20%;
+  flex: 1 100%;
 }
 
 #trade .c,
@@ -2237,7 +2238,8 @@ order-top: none;
   max-width: 400px;
   */
   padding-top: 9px;
-  margin-top: 0;
+  margin-top: -6px;
+  top: 5px;
 }
 
 .input-wrapper .input {
@@ -2546,3 +2548,158 @@ order-top: none;
   transition:all ease-in .35s;
 }*/
 
+
+
+
+/*trend css */
+
+:root {
+      --bullish: #28a745;
+      --bearish: #dc3545;
+      --neutral: #6c757d;
+    }
+
+    
+    #setupTrendModal .modal-content {
+    	background-color: #f8f9fa;
+      border-radius: 12px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      border: none;
+    }
+
+    #setupTrendModal .modal-header {
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      padding: 1rem 1.5rem;
+    }
+
+    #setupTrendModal .modal-body {
+      padding: 1.5rem 1rem;
+    }
+    #setupTrendModal .modal-body .row > * {
+    	padding: 0.5rem 0.5rem;
+    }
+
+    
+
+    #setupTrendModal .modal-footer {
+      border-top: 1px solid rgba(0, 0, 0, 0.05);
+      padding: 1rem 1.5rem;
+    }
+
+    #setupTrendModal .section-card {
+      background-color: #fff;
+      border-radius: 10px;
+      padding: 0.5rem 0.75rem;
+      margin-bottom: 0.75rem;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+      border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    /* Trend indicators */
+    #setupTrendModal .bullish {
+      color: var(--bullish);
+    }
+
+    #setupTrendModal .bearish {
+      color: var(--bearish);
+    }
+
+    #setupTrendModal .neutral {
+      color: var(--neutral);
+    }
+
+    /* Results panel */
+    #setupTrendModal .setup-summary {
+      background-color: #f8f9fa;
+      padding: 0.5rem 1.25rem;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      
+      
+    }
+
+    /* Custom select styling */
+    #setupTrendModal .trend-select {
+      border-left-width: 4px;
+      transition: all 0.2s ease;
+    }
+
+    #setupTrendModal .trend-select.bullish-border {
+      border-left-color: var(--bullish);
+    }
+
+    #setupTrendModal .trend-select.bearish-border {
+      border-left-color: var(--bearish);
+    }
+
+    #setupTrendModal .trend-select.neutral-border {
+      border-left-color: var(--neutral);
+    }
+
+    /* Custom tab styling */
+    #setupTabs {
+      border-bottom: none;
+      margin-bottom: .25rem;
+    }
+
+    #setupTabs .nav-link {
+      border: none;
+      padding: 0.5rem 1rem;
+      margin-right: 0.5rem;
+      border-radius: 6px;
+      font-weight: 500;
+    }
+
+    #setupTabs .nav-link.active {
+      background-color: #0d6efd;
+      color: white;
+    }
+
+    #setupTrendModal .form-label {
+      font-weight: 500;
+      font-size: 0.875rem;
+      color: #495057;
+    }
+
+    #setupTrendModal .input-group {
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    #setupTrendModal .section-title {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03rem;
+      color: #6c757d;
+      font-weight: 600;
+      margin-bottom: 0.1rem;
+      display: flex;
+      align-items: center;
+    }
+
+    #setupTrendModal .section-title i {
+      margin-right: 6px;
+    }
+
+    #setupTrendModal .value-badge {
+      font-size: 0.8rem !important;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-top: 4px;
+      display: inline-block;
+    }
+
+    /* Custom form control sizing */
+    #setupTrendModal .form-control,
+    #setupTrendModal .form-select {
+      padding: 0.375rem 0.75rem;
+    }
+
+    #setupTrendModal .btn-setup {
+      padding: 0.5rem 1.5rem;
+      font-weight: 500;
+    }
+
+    @media (max-width: 768px) {
+    	#setupTrendModal .input-group-text {
+    		padding: .375rem .5rem;
+    	}
+    }

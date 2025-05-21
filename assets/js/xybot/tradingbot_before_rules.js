@@ -153,6 +153,76 @@ class BotManager {
 
 const botManager = new BotManager();
 
+const bbotManagerOld = {
+  bots: {}, // Store all running bots
+
+  // Create and initialize a bot
+  createBot(botConfig) {
+    if (this.bots[botConfig.botId]) {
+      console.warn(`⚠️ Bot ${botConfig.botId} exists.`);
+      return this.bots[botConfig.botId]; // Return if already exists
+    }
+
+    const bot = new tradingbot();
+    bot.config(botConfig);
+
+    this.bots[botConfig.botId] = bot; // Store the bot
+    console.log(`✅ Bot ${botConfig.botId} created and ready.`);
+
+    // Register event listeners per bot
+    bot.on('botTimeError', (data) => console.error(`⏳ [Bot ${bot.botId}] Time Error:`, data));
+    bot.on('error', (data) => console.error(`❌ [Bot ${bot.botId}] Error:`, data));
+    bot.on('start', (data) => xybot.renderBotList());
+    bot.on('stop', (data) => xybot.renderBotList());
+
+    return bot;
+  },
+
+  // Start a bot by botId
+  startBot(botId) {
+    const bot = this.bots[botId];
+    if (!bot) {
+      console.error(`🚨 Cannot start: Bot ${botId} not found.`);
+      return;
+    }
+
+    console.log(`▶️ Starting bot ${botId}...`);
+    //bot.trigger('start'); // Trigger start event
+    bot.start(botId);
+  },
+
+  // Stop a bot by botId
+  stopBot(botId) {
+    const bot = this.bots[botId];
+    if (!bot) {
+      console.error(`🚨 Cannot stop: Bot ${botId} not found.`);
+      return;
+    }
+
+    console.log(`⏹ Stopping bot ${botId}...`);
+    bot.trigger('stop'); // Trigger stop event
+    bot.stop(botId);
+  },
+
+  // Stop a bot by botId
+  isRunning(botId) {
+    const bot = this.bots[botId];
+    if (!bot) {
+      console.error(`🚨 Error: Bot ${botId} not found.`);
+      return;
+    }
+
+    console.log(`⏹ Bot Status ${botId}: ${bot.isMarketMaking}`);
+    console.log('⏹ Bot Status ', bot.isMarketMaking);
+
+    return bot.isMarketMaking;
+  },
+
+  // List all active bots
+  listBots() {
+    return Object.keys(this.bots);
+  }
+};
 /*
 //  Example Usage
 botManager.createBot({
@@ -179,637 +249,6 @@ botManager.stopBot("bot123");  // ⏹ Stop bot
 console.log("🔥 Active bots:", botManager.listBots());
 
 */
-
-/**
- * CryptoTradingRules Class
- * 
- * This class provides functions to establish trading rules across different
- * cryptocurrency markets (BTC, ETH, LTC, NEO, etc.) for market making activities.
- */
-class CryptoTradingRules {
-  /**
-   * Create a new CryptoTradingRules instance
-   * @param {number|null} defaultDecimals - Optional default decimal precision for all operations
-   */
-  constructor(defaultDecimals = null) {
-    this.defaultDecimals = defaultDecimals;
-  }
-
-  /**
-   * Calculate minimum and maximum push prices based on current market price
-   * Can use either absolute price values or percentages
-   * 
-   * @param {number} currentPrice - Current price of the cryptocurrency
-   * @param {Object} options - Configuration options
-   * @param {number|null} options.minPushAmount - Minimum price movement as absolute amount (overrides percentage)
-   * @param {number|null} options.maxPushAmount - Maximum price movement as absolute amount (overrides percentage)
-   * @param {number} options.minPushPercentage - Minimum price movement percentage (default: 0.5%)
-   * @param {number} options.maxPushPercentage - Maximum price movement percentage (default: 2.5%)
-   * @param {number|null} options.decimals - Custom decimal precision (overrides automatic precision)
-   * @returns {Object} Object containing min and max push prices
-   */
-  calculatePushLimits(currentPrice, options = {}) {
-    // Set defaults and extract options
-    const {
-      minPushAmount = null,
-      maxPushAmount = null,
-      minPushPercentage = 0.5,
-      maxPushPercentage = 2.5,
-      decimals = this.defaultDecimals,
-      side = null
-    } = options;
-
-    console.log('calculatePushLimits side', side);
-    console.log('calculatePushLimits minPushAmount', minPushAmount);
-    console.log('calculatePushLimits maxPushAmount', maxPushAmount);
-    
-    // Validate current price
-    if (currentPrice <= 0) {
-      throw new Error('Current price must be positive');
-    }
-
-    let minPushPrice, maxPushPrice;
-
-    // Use absolute amounts if provided, otherwise use percentages
-    if (minPushAmount !== null && maxPushAmount !== null) {
-      minPushPrice = currentPrice + minPushAmount;
-      maxPushPrice = currentPrice + maxPushAmount;
-
-      if (side == 'bid') {
-        minPushPrice = currentPrice + minPushAmount;
-        maxPushPrice = currentPrice + maxPushAmount;
-      }
-      if (side == 'ask') {
-        minPushPrice = currentPrice - minPushAmount;
-        maxPushPrice = currentPrice - maxPushAmount;
-      }
-      // Validate min/max relationship
-      /*if (minPushPrice > maxPushPrice) {
-        console.log('Min push price must be less than max push price', minPushPrice, maxPushPrice);
-        throw new Error('Min push price must be less than max push price', minPushPrice, maxPushPrice);
-      }
-      */
-    } else {
-      // Fallback to percentage-based calculation
-      if (minPushPercentage > maxPushPercentage) {
-        console.error('Min push percentage must be less than max push percentage', minPushPercentage, maxPushPercentage);
-        throw new Error('Min push percentage must be less than max push percentage', minPushPercentage, maxPushPercentage);
-      }
-      // Calculate min and max push based on percentages of current price
-      minPushPrice = currentPrice * (1 + minPushPercentage / 100);
-      maxPushPrice = currentPrice * (1 + maxPushPercentage / 100);
-    }
-
-    return {
-      minPushPrice: this.formatPriceForMarket(minPushPrice, currentPrice, decimals),
-      maxPushPrice: this.formatPriceForMarket(maxPushPrice, currentPrice, decimals),
-      // Include mode info for clarity
-      mode: minPushAmount !== null ? 'absolute' : 'percentage'
-    };
-  }
-
-  /**
-   * Format price according to the market's typical precision
-   * 
-   * @param {number} price - Price to format
-   * @param {number} referencePrice - Reference price to determine precision
-   * @param {number|null} decimals - Optional custom decimal precision
-   * @returns {number} Formatted price with appropriate precision
-   */
-  formatPriceForMarket(price, referencePrice, decimals = null) {
-    // Use custom decimal precision if provided
-    let precision;
-
-    if (decimals !== null && Number.isInteger(decimals) && decimals >= 0) {
-      precision = decimals;
-    } else {
-      // Determine appropriate decimal precision based on price magnitude
-      if (referencePrice >= 10000) {         // BTC/USDT range
-        precision = 3;
-      } else if (referencePrice >= 1000) {   // High-value coins
-        precision = 3;
-      } else if (referencePrice >= 100) {    // Mid-value coins
-        precision = 4;
-      } else if (referencePrice >= 10) {     // Lower-value coins
-        precision = 4;
-      } else if (referencePrice >= 5) {     // Lower-value coins
-        precision = 5;
-      } else if (referencePrice >= 1) {      // Very low-value coins
-        precision = 6;
-      } else if (referencePrice >= 0.5) {      // Very low-value coins
-        precision = 7;
-      } else if (referencePrice >= 0.1) {    // Micro-value coins
-        precision = 8;
-      } else {                               // Ultra micro-value coins
-        precision = 8;
-      }
-    }
-
-    // Format the price to the appropriate precision
-    const multiplier = Math.pow(10, precision);
-    return Math.round(price * multiplier) / multiplier;
-  }
-
-  /**
-   * Generate random tick prices between min and max push prices
-   * 
-   * @param {number} minPushPrice - Minimum push price
-   * @param {number} maxPushPrice - Maximum push price
-   * @param {number} numTicks - Number of ticks to generate (default: 5)
-   * @param {number} currentPrice - Current price for reference
-   * @param {number|null} decimals - Optional custom decimal precision
-   * @returns {Array<number>} Array of tick prices sorted from lowest to highest
-   */
-  generateTickPrices(minPushPrice, maxPushPrice, numTicks = 5, currentPrice, decimals = null) {
-    if (numTicks < 1) {
-      return [];
-    }
-
-    const ticks = [];
-
-    // Generate random ticks
-    for (let i = 0; i < numTicks; i++) {
-      const randomFactor = Math.random();
-      const tickPrice = minPushPrice + (maxPushPrice - minPushPrice) * randomFactor;
-      ticks.push(this.formatPriceForMarket(tickPrice, currentPrice, decimals));
-    }
-
-    console.log('ticks: ', ticks, minPushPrice, maxPushPrice, numTicks = 5, currentPrice, decimals);
-    // Sort ticks from lowest to highest
-    return ticks.sort((a, b) => a - b);
-  }
-
-  /**
-   * Adjusts price based on market trend
-   * 
-   * @param {number} price - Base price to adjust
-   * @param {string} trend - Market trend ('neutral', 'above', 'below', 'strong_above', 'strong_below')
-   * @param {number} adjustmentFactor - Percentage to adjust by (default: 0.2%)
-   * @returns {number} Adjusted price
-   */
-  adjustPriceForTrend(price, trend, adjustmentFactor = 0.2) {
-    /*
-    switch (trend) {
-      case 'above':
-        return price * (1 + (adjustmentFactor * 1.5) / 100);
-      case 'below':
-        return price * (1 - (adjustmentFactor * 1.5) / 100);
-      case 'strong_above':
-        return price * (1 + (adjustmentFactor * 2) / 100);
-      case 'strong_below':
-        return price * (1 - (adjustmentFactor * 2) / 100);
-      case 'neutral':
-      default:
-        return price;
-    }
-    */
-    // Upward price trends (increasing strength)
-      switch (trend) {
-        // Original upward trends
-        case 'above':
-          return price * (1 + adjustmentFactor / 100);
-        case 'strong_above':
-          return price * (1 + (adjustmentFactor * 2) / 100);
-          // New upward trends with increasing intensity
-        case 'rising':
-          return price * (1 + (adjustmentFactor * 1.5) / 100);
-        case 'surging':
-          return price * (1 + (adjustmentFactor * 2.5) / 100);
-        case 'breakout':
-          return price * (1 + (adjustmentFactor * 3) / 100);
-        case 'extreme_bullish':
-          return price * (1 + (adjustmentFactor * 4) / 100);
-          // Original downward trends
-        case 'below':
-          return price * (1 - adjustmentFactor / 100);
-        case 'strong_below':
-          return price * (1 - (adjustmentFactor * 2) / 100);
-          // New downward trends with increasing intensity
-        case 'falling':
-          return price * (1 - (adjustmentFactor * 1.5) / 100);
-        case 'dropping':
-          return price * (1 - (adjustmentFactor * 2.5) / 100);
-        case 'breakdown':
-          return price * (1 - (adjustmentFactor * 3) / 100);
-        case 'extreme_bearish':
-          return price * (1 - (adjustmentFactor * 4) / 100);
-        case 'neutral':
-        default:
-          return price;
-      }
-  }
-
-  /**
-   * Calculate bid and ask prices for market making with enhanced trend support
-   *
-   * @param {number} midPrice - Mid-market price
-   * @param {Object} options - Configuration options
-   * @param {number} options.spreadPercentage - Bid-ask spread as percentage (default: 0.5%)
-   * @param {string} options.marketTrend - Overall market trend (extended options for bullish/bearish)
-   * @param {string} options.bidTrend - Specific trend for bid price (extended options)
-   * @param {string} options.askTrend - Specific trend for ask price (extended options)
-   * @param {number} options.trendAdjustment - Base adjustment percentage for trends (default: 0.2%)
-   * @param {number} options.spreadBiasPercentage - How much to skew the spread in trend direction (default: 30%)
-   * @param {number|null} options.decimals - Custom decimal precision
-   * @returns {Object} Bid and ask prices with spread information
-   */
-  calculateBidAskPrices(midPrice, options = {}) {
-    const {
-      spreadPercentage = 0.5,
-      marketTrend = 'neutral',
-      bidTrend = 'neutral',
-      askTrend = 'neutral',
-      trendAdjustment = 0.2,
-      spreadBiasPercentage = 30,
-      decimals = this.defaultDecimals
-    } = options;
-
-    console.log('calculateBidAskPrices options:', options);
-   
-    // Calculate half spread
-    const halfSpreadBase = spreadPercentage / 200;
-   
-    // Adjust spread bias based on market trend
-    let bidSpreadMultiplier = 1;
-    let askSpreadMultiplier = 1;
-   
-    // Apply spread bias based on market trend (0-100%)
-    const biasAmount = spreadBiasPercentage / 100;
-   
-    // Enhanced market trend handling
-    switch (marketTrend) {
-      // Original trends
-      case 'bullish':
-        bidSpreadMultiplier = 1 - (biasAmount * 0.5);
-        askSpreadMultiplier = 1 + (biasAmount * 0.5);
-        break;
-      case 'bearish':
-        bidSpreadMultiplier = 1 + (biasAmount * 0.5);
-        askSpreadMultiplier = 1 - (biasAmount * 0.5);
-        break;
-      case 'strong_bullish':
-        bidSpreadMultiplier = 1 - biasAmount;
-        askSpreadMultiplier = 1 + biasAmount;
-        break;
-      case 'strong_bearish':
-        bidSpreadMultiplier = 1 + biasAmount;
-        askSpreadMultiplier = 1 - biasAmount;
-        break;
-       
-      // New bullish trend levels
-      case 'rising_bullish':
-        bidSpreadMultiplier = 1 - (biasAmount * 0.7);
-        askSpreadMultiplier = 1 + (biasAmount * 0.7);
-        break;
-      case 'surging_bullish':
-        bidSpreadMultiplier = 1 - (biasAmount * 1.2);
-        askSpreadMultiplier = 1 + (biasAmount * 1.2);
-        break;
-      case 'breakout_bullish':
-        bidSpreadMultiplier = 1 - (biasAmount * 1.5);
-        askSpreadMultiplier = 1 + (biasAmount * 1.5);
-        break;
-      case 'extreme_bullish':
-        bidSpreadMultiplier = 1 - (biasAmount * 2);
-        askSpreadMultiplier = 1 + (biasAmount * 2);
-        break;
-       
-      // New bearish trend levels
-      case 'falling_bearish':
-        bidSpreadMultiplier = 1 + (biasAmount * 0.7);
-        askSpreadMultiplier = 1 - (biasAmount * 0.7);
-        break;
-      case 'dropping_bearish':
-        bidSpreadMultiplier = 1 + (biasAmount * 1.2);
-        askSpreadMultiplier = 1 - (biasAmount * 1.2);
-        break;
-      case 'breakdown_bearish':
-        bidSpreadMultiplier = 1 + (biasAmount * 1.5);
-        askSpreadMultiplier = 1 - (biasAmount * 1.5);
-        break;
-      case 'extreme_bearish':
-        bidSpreadMultiplier = 1 + (biasAmount * 2);
-        askSpreadMultiplier = 1 - (biasAmount * 2);
-        break;
-       
-      case 'neutral':
-      default:
-        // Keep the spread balanced
-        break;
-    }
-   
-    // Apply adjusted spread multipliers
-    const bidHalfSpread = halfSpreadBase * bidSpreadMultiplier;
-    const askHalfSpread = halfSpreadBase * askSpreadMultiplier;
-   
-    // Calculate base bid and ask with adjusted spread
-    let bidPrice = midPrice * (1 - bidHalfSpread);
-    let askPrice = midPrice * (1 + askHalfSpread);
-   
-    console.log('calculateBidAskPrices bidSpreadMultiplier: ', bidSpreadMultiplier);
-    console.log('calculateBidAskPrices askSpreadMultiplier: ', askSpreadMultiplier);
-    console.log('calculateBidAskPrices midPrice: ', midPrice);
-    console.log('calculateBidAskPrices bidPrice: ', bidPrice);
-    console.log('calculateBidAskPrices askPrice: ', askPrice);
-    console.log('calculateBidAskPrices bidHalfSpread: ', bidHalfSpread);
-    console.log('calculateBidAskPrices askHalfSpread: ', askHalfSpread);
-    
-    bidPrice = this.adjustPriceForTrend(bidPrice, bidTrend, trendAdjustment);
-    askPrice = this.adjustPriceForTrend(askPrice, askTrend, trendAdjustment);
-     
-    console.log('calculateBidAskPrices adjustPriceForTrend bidPrice: ', bidPrice);
-    console.log('calculateBidAskPrices adjustPriceForTrend askPrice: ', askPrice);
-     
-    console.log('calculateBidAskPrices =bidPrice: ', bidPrice);
-    console.log('calculateBidAskPrices =askPrice: ', askPrice);
-
-    // Calculate actual spread and percentage after all adjustments
-    const finalSpread = askPrice - bidPrice;
-    const finalSpreadPercentage = (finalSpread / midPrice) * 100;
-   
-    // Format to appropriate precision
-    return {
-      bidPrice: this.formatPriceForMarket(bidPrice, midPrice, decimals),
-      askPrice: this.formatPriceForMarket(askPrice, midPrice, decimals),
-      spread: this.formatPriceForMarket(finalSpread, midPrice, decimals),
-      spreadPercentage: this.formatPriceForMarket(finalSpreadPercentage, midPrice, 2),
-      spreadBias: marketTrend !== 'neutral' ? marketTrend : 'none'
-    };
-  }
-
-  /**
-   * Generate a complete market making rule set with improved push limits
-   * 
-   * @param {number} midPrice - Mid-market price
-   * @param {Object} options - Configuration options
-   * @param {number} options.spreadPercentage - Bid-ask spread percentage (default: 0.5%)
-   * @param {string} options.marketTrend - Overall market trend
-   * @param {string} options.bidTrend - Trend for bid side ('neutral', 'above', 'below')
-   * @param {string} options.askTrend - Trend for ask side ('neutral', 'above', 'below')
-   * @param {number} options.trendAdjustment - Adjustment factor for trends (default: 0.2%)
-   * @param {number} options.minPushPercentage - Min push percentage for ticks (default: 0.1%)
-   * @param {number} options.maxPushPercentage - Max push percentage for ticks (default: 0.5%)
-   * @param {number|null} options.minPushAmount - Absolute min push amount (overrides percentage)
-   * @param {number|null} options.maxPushAmount - Absolute max push amount (overrides percentage)
-   * @param {number} options.bidTicks - Number of bid ticks to generate (default: 3)
-   * @param {number} options.askTicks - Number of ask ticks to generate (default: 3)
-   * @param {number|null} options.decimals - Custom decimal precision
-   * @returns {Object} Complete market making rule set
-   */
-  generateMarketMakingRules(midPrice, options = {}) {
-    let {
-      spreadPercentage = 0.5,
-      marketTrend = 'neutral',
-      bidTrend = 'neutral',
-      askTrend = 'neutral',
-      trendAdjustment = 0.2,
-      minPushPercentage = 0.1,
-      maxPushPercentage = 0.5,
-      minPushAmount = null,
-      maxPushAmount = null,
-      
-      minBidPushAmount = null,
-      maxBidPushAmount = null,
-      minAskPushAmount = null,
-      maxAskPushAmount = null,
-
-      bidTicks = 1,
-      askTicks = 1,
-      decimals = this.defaultDecimals
-    } = options;
-
-    //Set default bid ask 
-    minBidPushAmount = minBidPushAmount ? minBidPushAmount : minPushAmount;
-    maxBidPushAmount = maxBidPushAmount ? maxBidPushAmount : maxPushAmount;
-
-    minAskPushAmount = minAskPushAmount ? minAskPushAmount : minPushAmount;
-    maxAskPushAmount = maxAskPushAmount ? maxAskPushAmount : maxPushAmount;
-
-    console.log('generateMarketMakingRules minBidPushAmount: ', minBidPushAmount);
-    console.log('generateMarketMakingRules maxBidPushAmount: ', maxBidPushAmount);
-    console.log('generateMarketMakingRules minAskPushAmount: ', minAskPushAmount);
-    console.log('generateMarketMakingRules maxAskPushAmount: ', maxAskPushAmount);
-
-    // Calculate primary bid and ask prices
-    const { bidPrice, askPrice, spread, spreadPercentage: calculatedSpread } = 
-      this.calculateBidAskPrices(midPrice, {
-        spreadPercentage,
-        marketTrend,
-        bidTrend,
-        askTrend,
-        trendAdjustment,
-        decimals
-      });
-
-    // Generate bid ticks (descending from bid price)
-    const bidTickPrices = [];
-    if (bidTicks > 0) {
-     // For ask side, we can use calculatePushLimits as intended
-      const bidPushOptions = {
-        'minPushAmount': minBidPushAmount,
-        'maxPushAmount': maxBidPushAmount,
-        minPushPercentage,
-        maxPushPercentage,
-        side: 'bid',
-        decimals,
-      };
-      
-      const bidPushLimits = this.calculatePushLimits(bidPrice, bidPushOptions);
-      
-      // Generate ticks between min and max push limits
-      const ticks = this.generateTickPrices(
-        bidPushLimits.minPushPrice, 
-        bidPushLimits.maxPushPrice, 
-        askTicks, 
-        midPrice,
-        decimals
-      );
-      
-      bidTickPrices.push(...ticks);
-    }
-
-    // Generate ask ticks (ascending from ask price)
-    const askTickPrices = [];
-    if (askTicks > 0) {
-      // For ask side, we can use calculatePushLimits as intended
-      const askPushOptions = {
-        'minPushAmount': minAskPushAmount,
-        'maxPushAmount': maxAskPushAmount,
-        minPushPercentage: minPushPercentage,
-        maxPushPercentage: maxPushPercentage,
-        side: 'ask',
-        decimals: decimals,
-      };
-      
-      const askPushLimits = this.calculatePushLimits(askPrice, askPushOptions);
-      
-      // Generate ticks between min and max push limits
-      const ticks = this.generateTickPrices(
-        askPushLimits.minPushPrice,
-        askPushLimits.maxPushPrice,
-        askTicks,
-        midPrice,
-        decimals
-      );
-      
-      askTickPrices.push(...ticks);
-    }
-
-    return {
-      midPrice: this.formatPriceForMarket(midPrice, midPrice, decimals),
-      bidPrice,
-      askPrice,
-      spread,
-      spreadPercentage: calculatedSpread,
-      bidTrend,
-      askTrend,
-      bidTickPrices,
-      askTickPrices,
-      marketTrend,
-      /*marketStatus: {
-        bidTicksCount: bidTickPrices.length,
-        askTicksCount: askTickPrices.length,
-        //totalOrderCount: 2 + bidTickPrices.length + askTickPrices.length
-      },
-      */
-      pushLimitMode: (minPushAmount || minBidPushAmount || minAskPushAmount) ? 'absolute' : 'percentage',
-      decimalPrecision: decimals !== null ? decimals : this.getDefaultPrecision(midPrice)
-    };
-  }
-
-  /**
-   * Calculate prices for layered ladder orders
-   * 
-   * @param {number} basePrice - Base price (bid or ask)
-   * @param {string} side - Order side ('bid' or 'ask')
-   * @param {number} layers - Number of order layers to create
-   * @param {number} increment - Price increment percentage between layers
-   * @param {number|null} decimals - Custom decimal precision
-   * @returns {Array<Object>} Array of prices and quantities for ladder orders
-   */
-  generateLadderOrders(basePrice, side, layers = 5, increment = 0.2, decimals = null) {
-    const orders = [];
-    const isAsk = side.toLowerCase() === 'ask';
-    const direction = isAsk ? 1 : -1;
-
-    // Common quantity distribution patterns (can be customized)
-    const quantityMultipliers = [1, 0.8, 0.65, 0.5, 0.4, 0.3, 0.25, 0.2];
-
-    for (let i = 0; i < layers; i++) {
-      // Price increases or decreases by increment percentage with each step
-      const priceMultiplier = 1 + (direction * increment * i) / 100;
-      const price = this.formatPriceForMarket(basePrice * priceMultiplier, basePrice, decimals);
-
-      // Quantity decreases as we move away from the base price
-      const qtyMultiplier = i < quantityMultipliers.length ? quantityMultipliers[i] : 0.1;
-
-      orders.push({
-        price,
-        quantityMultiplier: qtyMultiplier,
-        level: i + 1
-      });
-    }
-
-    return orders;
-  }
-
-  /**
-   * Helper function to get the default precision based on price
-   * 
-   * @param {number} price - Price to determine precision for
-   * @returns {number} Default precision for the given price
-   */
-  getDefaultPrecision(price) {
-    if (price >= 10000) return 3;
-    if (price >= 1000) return 3;
-    if (price >= 100) return 4;
-    if (price >= 10) return 4;
-    if (price >= 5) return 5;
-    if (price >= 1) return 6;
-    if (price >= 0.5) return 7;
-    if (price >= 0.1) return 8;
-    return 8;
-  }
-
-  /**
-	 * Get a random price from the given bid/ask tick prices array
-	 * 
-	 * @param {Array<number>} tickPrices - Array of tick prices to select from
-	 * @param {Object} options - Configuration options
-	 * @param {boolean} options.avoidExtremes - Whether to avoid the extreme values (min/max)
-	 * @param {string} options.bias - Bias the selection ('lower', 'middle', 'upper')
-	 * @returns {number|null} Random price from the array or null if empty
-	 */
-	getRandomTickPrice(tickPrices, options = {}) {
-	  const {
-	    avoidExtremes = false,
-	    bias = 'none' // 'lower', 'middle', 'upper', 'none'
-	  } = options;
-	  
-	  if (!tickPrices || tickPrices.length === 0) {
-	    return null;
-	  }
-	  
-	  let workingArray = [...tickPrices];
-	  
-	  // Handle avoiding extremes
-	  if (avoidExtremes && workingArray.length > 2) {
-	    // Remove the min and max values
-	    workingArray.sort((a, b) => a - b);
-	    workingArray = workingArray.slice(1, -1);
-	  }
-	  
-	  const length = workingArray.length;
-	  
-	  // Handle bias selection
-	  let index;
-	  
-	  switch(bias) {
-	    case 'lower':
-	      // Bias toward lower prices (first third of array)
-	      index = Math.floor(Math.random() * Math.ceil(length / 3));
-	      return workingArray[index];
-	      
-	    case 'upper':
-	      // Bias toward upper prices (last third of array)
-	      index = Math.floor(Math.random() * Math.ceil(length / 3)) + Math.floor(length * 2 / 3);
-	      return workingArray[Math.min(index, length - 1)];
-	      
-	    case 'middle':
-	      // Bias toward middle prices (middle third of array)
-	      index = Math.floor(Math.random() * Math.ceil(length / 3)) + Math.floor(length / 3);
-	      return workingArray[Math.min(index, length - 1)];
-	      
-	    case 'none':
-	    default:
-	      // No bias, completely random
-	      index = Math.floor(Math.random() * length);
-	      return workingArray[index];
-	  }
-	}
-	/*
-	// Get a completely random bid price
-	const randomBidPrice = tradingRules.getRandomTickPrice(rules.bidTickPrices);
-	console.log('Random bid price:', randomBidPrice);
-
-	// Get a random ask price biased toward lower values (more conservative)
-	const conservativeAskPrice = tradingRules.getRandomTickPrice(rules.askTickPrices, { bias: 'lower' });
-	console.log('Conservative ask price:', conservativeAskPrice);
-
-	// Get a random bid price avoiding extreme values
-	const moderateBidPrice = tradingRules.getRandomTickPrice(rules.bidTickPrices, { avoidExtremes: true });
-	console.log('Moderate bid price:', moderateBidPrice);
-
-	// Get a random ask price biased toward higher values (more aggressive)
-	const aggressiveAskPrice = tradingRules.getRandomTickPrice(rules.askTickPrices, { bias: 'upper' });
-	console.log('Aggressive ask price:', aggressiveAskPrice);
-	*/
-
-
-	//end of class
-}
-
-
 class tradingbot {
   constructor() {
     
@@ -834,7 +273,7 @@ class tradingbot {
   }
 
   // Method to configure the bot properties
-  config({botId, tradingPair, buyBalance = 0, sellBalance = 0, minimalSpread, minOrderCost = 0.00002500, maxOrderCost = 0.00005000, maxOpenOrders = {bid: 50, ask: 50}, botDuration= 1440, intervalPeriod = [], useLiquidity = false, waitTimeRange = {min: 10, max: 20}, cancelOrdersOnStop = { cancelBuyOrders: false, cancelSellOrders: false }, orderType = 'both', marketSettings, bidSettings, askSettings}) {
+  config({botId, tradingPair, buyBalance = 0, sellBalance = 0, minimalSpread, minOrderCost = 0.00002500, maxOrderCost = 0.00005000, maxOpenOrders = {bid: 50, ask: 50}, botDuration= 1440, intervalPeriod = [], useLiquidity = false, waitTimeRange = {min: 10, max: 20}, cancelOrdersOnStop = { cancelBuyOrders: false, cancelSellOrders: false }, orderType = 'both', bidSettings, askSettings}) {
     if (!['buy', 'sell', 'both'].includes(orderType)) {
       this.trigger('error', {'message': 'Invalid orderType. Valid options are "buy", "sell", or "both"'});
       throw new Error('DexyBot Error - Invalid orderType. Valid options are "buy", "sell", or "both".');
@@ -849,7 +288,6 @@ class tradingbot {
 
 
     this.orderType = orderType;
-    this.marketSettings = marketSettings;
     this.bidSettings = bidSettings;
     this.askSettings = askSettings;
     this.maintenance = false;
@@ -867,7 +305,6 @@ class tradingbot {
     this.closedBidOrders = [];
     this.closedAskOrders = [];
     this.isMarketMaking = false;
-    this.tradingRules = new CryptoTradingRules(8);	//default 8 decimal precision, generating price behavior
     
     this.botDuration = botDuration;
     // Set default intervalPeriod if not passed
@@ -1011,17 +448,14 @@ trigger(eventName, ...args) {
     // Function to validate and adjust trend settings for bid and ask actions
     const validateTrendSettings = (settings) => {
         // Ensure minimum price is at least 1
-        /*settings.action.minPrice = Math.max(1, settings.action.minPrice);
-        settings.action.minPrice = (settings.action.minPrice /1e8);
-        */
-
-        settings.action.minPrice = parseFloat(settings.action.minPrice);
+        settings.action.minPrice = Math.max(1, settings.action.minPrice);
+        settings.action.minPrice = (settings.action.minPrice / 1e8);
+        //settings.action.minPrice = parseFloat(settings.action.minPrice).toFixed(8);
 
         // Adjust maximum price if lower than or equal to minimum, ensuring it's at least 1 higher
-        /*settings.action.maxPrice = Math.max(settings.action.minPrice + 1, settings.action.maxPrice);
-        settings.action.maxPrice = (settings.action.maxPrice /1e8);
-        */
-        settings.action.maxPrice = parseFloat(settings.action.maxPrice);
+        settings.action.maxPrice = Math.max(settings.action.minPrice + 1, settings.action.maxPrice);
+        settings.action.maxPrice = (settings.action.maxPrice / 1e8);
+        //settings.action.maxPrice = parseFloat(settings.action.maxPrice).toFixed(8);
 
 
         // Ensure minimum quantity aligns with minimum order cost
@@ -1291,12 +725,10 @@ start = async () => {
       await this.cancelAllAskOrders();
     }
 
-    console.log(`======(${this.botId}) SUMMARIZE START=====`);
     console.log(`DexyBot (${this.botId}) - Total buy orders created:`, this.openBidOrders.length);
     console.log(`DexyBot (${this.botId}) - Total sell orders created:`, this.openAskOrders.length);
     console.log(`DexyBot (${this.botId}) - Total buy orders canceled:`, this.closedBidOrders.length);
     console.log(`DexyBot (${this.botId}) - Total sell orders canceled:`, this.closedAskOrders.length);
-    console.log(`======(${this.botId}) SUMMARIZE END=====`);
 
     // Save bot data to localStorage
     // This is needed after cancellation of orders
@@ -1419,57 +851,14 @@ cancelAskOrder = async (orderId, index) => {
   performMarketMakingLiquidity = async (bidPrice, askPrice) => {
 
     let price, amount, cost;
-    let midPrice = (bidPrice+askPrice)/2;
-    //get prices for bid and ask from new trading rules class
-    
-    console.log(`\n=== DexyBot tradingRules ${this.tradingPair} Market Making with Push Limits (Absolute) ===`);
-	  var newTradingRules = this.tradingRules.generateMarketMakingRules(midPrice, {
-	    /*minBidPushAmount: this.bidSettings.action.minPrice,
-	    maxBidPushAmount: this.bidSettings.action.maxPrice,
-	    minAskPushAmount: this.askSettings.action.minPrice,
-	    maxAskPushAmount: this.askSettings.action.maxPrice,
-	    */
-
-	  	spreadPercentage: this.marketSettings.spread,
-		  trendAdjustment: this.marketSettings.trendAdjustment,
-		  spreadBiasPercentage: this.marketSettings.spreadBias,
-
-			minBidPushAmount: this.bidSettings.action.trend === 'neutral' ? this.bidSettings.action.minPrice : null,
-	    maxBidPushAmount: this.bidSettings.action.trend === 'neutral' ? this.bidSettings.action.maxPrice : null,
-	    minAskPushAmount: this.askSettings.action.trend === 'neutral' ? this.askSettings.action.minPrice : null,
-	    maxAskPushAmount: this.askSettings.action.trend === 'neutral' ? this.askSettings.action.maxPrice : null,
-
-	    marketTrend: this.marketSettings.trend,
-	    bidTrend: this.bidSettings.action.trend,
-	    askTrend: this.askSettings.action.trend,
-	    decimals: this.tradingRules.getDefaultPrecision(midPrice),
-	    bidTicks: 3,
-		  askTicks: 3,
-	    //decimals: 6
-	    
-	  });
-	  console.log('newTradingRules: ', newTradingRules);
-	  
 
     if (this.orderType === 'buy' || this.orderType === 'both') {
       if (this.openBidOrders.length < this.maxOpenBidOrders) {
 
-      	const randomBidPrice = this.tradingRules.getRandomTickPrice(newTradingRules.bidTickPrices);
-				console.log('Random bid price:', randomBidPrice);
-
-				/*if (!['none', 'neutral'].includes(this.bidSettings.action.trend))
-          [price, amount, cost] = await this.calculateBidOrder(askPrice);
-        else
-          [price, amount, cost] = await this.computeRandomBidOrderFromTrend(randomBidPrice, this.bidSettings.action.trend);
-        */
-
-        [price, amount, cost] = await this.computeRandomBidOrderFromTrend(randomBidPrice, this.bidSettings.action.trend);
-
-        /*if (['above', 'below', 'none', 'neutral'].includes(this.bidSettings.action.trend))
-          [price, amount, cost] = await this.computeRandomBidOrderFromTrend(randomBidPrice, this.bidSettings.action.trend);
+        if (['above', 'below', 'none'].includes(this.bidSettings.action.trend))
+          [price, amount, cost] = await this.computeRandomBidOrderFromTrend(bidPrice, this.bidSettings.action.trend);
         else
           [price, amount, cost] = await this.calculateBidOrder(askPrice);
-        */
 
         await this.placeBidOrder(price, amount, cost);
       }
@@ -1491,23 +880,10 @@ cancelAskOrder = async (orderId, index) => {
           return;
         }
 
-        const randomAskPrice = this.tradingRules.getRandomTickPrice(newTradingRules.askTickPrices);
-				console.log('Random ask price:', randomAskPrice);
-
-        /*if (!['none', 'neutral'].includes(this.askSettings.action.trend))
-          [price, amount, cost] = await this.calculateAskOrder(bidPrice);
-        else
-          [price, amount, cost] = await this.computeRandomAskOrderFromTrend(randomAskPrice, this.askSettings.action.trend);
-        */
-
-				[price, amount, cost] = await this.computeRandomAskOrderFromTrend(randomAskPrice, this.askSettings.action.trend);
-
-        /*
-				if (['above', 'below', 'none', 'neutral'].includes(this.askSettings.action.trend))
-          [price, amount, cost] = await this.computeRandomAskOrderFromTrend(randomAskPrice, this.askSettings.action.trend);
+        if (['above', 'below', 'none'].includes(this.bidSettings.action.trend))
+          [price, amount, cost] = await this.computeRandomAskOrderFromTrend(askPrice, this.askSettings.action.trend);
         else
           [price, amount, cost] = await this.calculateAskOrder(bidPrice);
-        */
 
         await this.placeAskOrder(price, amount, cost);
       }
@@ -1587,50 +963,61 @@ cancelAskOrder = async (orderId, index) => {
 
 
 
-// Get a random number between min and max
-secureRandomFloat = function(min, max) {
-  const array = new Uint32Array(1);
-  crypto.getRandomValues(array);
-  const random = array[0] / (0xFFFFFFFF + 1); // Normalize to [0, 1)
-  return random * (max - min) + min;
-}
+
 
 // Function to compute random order based on trend
 computeRandomBidOrderFromTrend = async (bidPrice, trend) => {
     const settings = this.bidSettings;
 
+    // Generate random price between min and max
+    const randomPrice = parseFloat(Math.random() * (settings.action.maxPrice - settings.action.minPrice) + settings.action.minPrice);
+    
+    const bidPriceOrg = bidPrice;
+
+    // Config trendbased price
+    if (trend == 'above')
+      bidPrice = parseFloat(bidPrice+randomPrice);
+    else if (trend == 'below')
+      bidPrice = parseFloat(bidPrice-randomPrice);
+    else {
+      bidPrice = parseFloat(bidPrice-randomPrice);
+    }
 
     // Generate random quantity between min and max
-    //const quantity = parseFloat(Math.random() * (settings.action.maxQty - settings.action.minQty) + settings.action.minQty);
-    const min = parseFloat(settings.action.minQty);
-		const max = parseFloat(settings.action.maxQty);
-		const quantity = this.secureRandomFloat(min, max);
+    const quantity = parseFloat(Math.random() * (settings.action.maxQty - settings.action.minQty) + settings.action.minQty);
 
-		bidPrice = (bidPrice).toFixed(this.tradingRules.getDefaultPrecision(bidPrice));
     // Calculate cost
     const cost = bidPrice * quantity;
 
-    console.log(`DexyBot (${this.botId}) - computeRandomBidOrderFromTrend bidPrice: ${bidPrice}, trendQty: ${quantity}, trendCost: ${cost}`);
+    console.log(`DexyBot (${this.botId}) - computeRandomBidOrderFromTrend: bidPriceOrg: ${bidPriceOrg}, trendPrice: ${bidPrice.toFixed(8)}, trendQty: ${quantity}, trendCost: ${cost}, , randomPrice: ${randomPrice}`);
 
     // Return an array containing [price, quantity, cost]
     return [bidPrice, quantity, cost];
 };
 computeRandomAskOrderFromTrend = async (askPrice, trend) => {
     const settings = this.askSettings;
+
+    // Generate random price between min and max
+    const randomPrice = parseFloat(Math.random() * (settings.action.maxPrice - settings.action.minPrice) + settings.action.minPrice);
+    const askPriceOrg = askPrice;
+
+    // Config trendbased price
+    if (trend == 'above')
+      askPrice = parseFloat(askPrice + randomPrice);
+    else if (trend == 'below')
+      askPrice = parseFloat(askPrice - randomPrice);
+    else {
+      askPrice = parseFloat(askPrice + randomPrice);
+    }
+
     
     // Generate random quantity between min and max
-    //const quantity = parseFloat(Math.random() * (settings.action.maxQty - settings.action.minQty) + settings.action.minQty);
-    const min = parseFloat(settings.action.minQty);
-		const max = parseFloat(settings.action.maxQty);
-		const quantity = this.secureRandomFloat(min, max);
-
-
-		askPrice = askPrice.toFixed(this.tradingRules.getDefaultPrecision(askPrice));
+    const quantity = parseFloat(Math.random() * (settings.action.maxQty - settings.action.minQty) + settings.action.minQty);
 
     // Calculate cost
     const cost = askPrice * quantity;
 
-    console.log(`DexyBot (${this.botId}) - computeRandomAskOrderFromTrend: askPrice: ${askPrice}, trendQty: ${quantity}, trendCost: ${cost}`);
+    console.log(`DexyBot (${this.botId}) - computeRandomAskOrderFromTrend: askPriceOrg: ${askPriceOrg}, trendPrice: ${askPrice.toFixed(8)}, trendQty: ${quantity}, trendCost: ${cost}, , randomPrice: ${randomPrice}`);
 
     // Return an array containing [price, quantity, cost]
     return [askPrice, quantity, cost];
@@ -1735,7 +1122,7 @@ placeBidOrder = async (price, amount, cost) => {
       });
       this.buyBalance -= cost;
     } else {
-      console.log(`DexyBot (${this.botId}) - placeBidOrder Rejected: `, placeOrderCall, newOrder);
+      console.log(`DexyBot (${this.botId}) - placeBidOrder Rejected: `, placeOrderCall);
     }
     this.trigger('orderPlace', { 'orderType': 'buy', 'order': newOrder, 'success': isSuccess, 'error': (placeOrderCall.error || '') });
   } catch (error) {
@@ -1766,7 +1153,7 @@ placeAskOrder = async (price, amount, cost) => {
       this.sellBalance -= amount;
 
     } else {
-      console.log(`DexyBot (${this.botId}) - placeAskOrder Failed: `, placeOrderCall, newOrder);
+      console.log(`DexyBot (${this.botId}) - placeAskOrder Failed: `, placeOrderCall);
     }
     this.trigger('orderPlace', { 'orderType': 'sell', 'order': newOrder, 'success': isSuccess, 'error': (placeOrderCall.error || '') });
   } catch (error) {

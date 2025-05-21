@@ -256,13 +256,18 @@ window.ych_gui_on_logout = function() {
   };
 
 
-
 ych.ws_calls["coininfo"] = function(wsdata) {
   //console.log('==ych.ws_calls["coininfo"]=='); //iceee commented out
   let coininfo = wsdata.objects[0];
   //console.log('==ych.ws_calls["coininfo"]==', coininfo); //iceee commented out
+
+  // Ensure nested structure exists
+  ych.data = ych.data || {};
+  ych.data.coininfos = ych.data.coininfos || {};
+
+  // Now safe to assign
   ych.data.coininfos[coininfo.coin] = coininfo;
-  
+
   //ych.gui.update_coininfo(coininfo);
   //page.update_coininfo_in_table(coininfo);
 };
